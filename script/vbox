@@ -1,0 +1,396 @@
+#!/bin/bash
+#
+#  vbox: Utility to retrieve status and control VirtualBox sessions
+#
+#  Usage: Type 'vbox help' for more information
+#
+#  Copyright (C) 2008 Mark Baaijens <mark.baaijens@gmail.com>
+#
+#  This file is part of VBoxTool.
+#
+#  VBoxTool is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  VBoxTool is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+version()
+{
+  echo "vbox $version"
+  echo "Copyright 2008 Mark Baaijens"
+  echo "License GNU GPL version 3 or later"
+
+}
+
+usage()
+{
+  echo "Usage: vbox show|showrun|start|autostart|save|stop|version|help [session]"
+  echo "Show info about VirtualBox sessions or control those sessions."
+  echo "Type 'vbox help' for more information."    
+}
+
+help()
+{
+  echo "Usage: vbox OPTION [session]"
+  echo "Show info about VirtualBox sessions or control those sessions."
+  echo ""
+  echo "Options:"
+  echo "  show              Show status of all sessions."
+  echo "  showrun           Only show status of running sessions."
+  echo "  start [session]   Start all saved sessions or only the given session."
+  echo "                    When no session name is given, all saved sessions will be"
+  echo "                    started; powered off and aborted sessions are left alone."  
+  echo "  autostart         Starts all sessions in a predefined configuration file."
+  echo "  save [session]    Save all running sessions or only the given session."
+  echo "  stop [session]    Stop all running sessions or only the given session."
+  echo "  backup [session]  Backup all running sessions or only the given session."
+  echo "                    Running sessions are saved and started after backup has"
+  echo "                    completed."
+  echo "  --version|version Version info."
+  echo "  --help|help       This help."
+  echo ""
+  echo "Through autostart, sessions can be started in a controlled way: only the"
+  echo "sessions in the configuration file will be started. As a bonus, the vrdp port"
+  echo "(also configurable) can be set at startup time."
+  echo "Option autostart depends on a configuration file, $configfile." 
+  echo "Each line in this file is a separate machine. Structure of each line:"
+  echo "<session-name>,<vrdp-port>. The given vrdp-port is set statically to the"
+  echo "session, prior to starting; state is discarded when session is in savestate."
+  echo ""  
+  echo "Example for $configfile:"
+  echo "Ubuntu Desktop,3391"
+  echo "Ubuntu JeOS,3392"
+  echo "Do not use spaces before and after the ',' delimiter."  
+  echo ""  
+  echo "Saving sessions is preferred above stopping: this is faster when restoring"
+  echo "and safer because session can appear to be cold booted."
+}
+
+loop()
+{
+  # Read commandline parameter(s)
+  option=$1
+  sessionname=$2
+
+  # Several state constants
+  state_running='running'
+  state_saved='saved'
+  state_powered_off='powered-off'
+  state_aborted='aborted'
+  state_unknown='unknown'
+    
+  # Actions specific for backup
+  if [ "$option" == "backup" ]
+  then
+    # Fixed folder
+    vboxfolder="$HOME/.VirtualBox"   
+
+    # Dynamic folders
+    vdifolder=$($vboxcommand list systemproperties | grep "Default VDI" | cut -d":" -f2 | sed -e 's/[[:space:]]//g')
+    machinefolder=$($vboxcommand list systemproperties | grep "Default machine" | cut -d":" -f2 | sed -e 's/[[:space:]]//g')
+
+    # Backup folder is fixed and relative to the vbox folder
+    backupfolder="$vboxfolder/.backup"
+    echo "Backup folder: $backupfolder"
+
+    # Create a backupfolder and subfolders
+    mkdir -p $backupfolder
+    mkdir -p $backupfolder/Machines
+    mkdir -p $backupfolder/VDI
+
+    # Copy the vbox config file
+    rsync -va "$vboxfolder/VirtualBox.xml" "$backupfolder"
+  fi
+  
+  # Actions specific for backup
+  if [ "$option" == "autostart" ]
+  then  
+    # Check if config file exists
+    if [ ! -e "$configfile" ]
+    then
+      echo "Configuration file $configfile not found"
+    fi
+  fi  
+
+  #
+  # Iterate over all registered vm's
+  #
+  # Beware: output from VBoxManage should be something like this: "UUID:<12 spaces><uuid>"
+  for uuid in $($vboxcommand list vms | grep UUID: | awk 'BEGIN{FS="UUID:            "}{print $2}')
+  do
+    #
+    # Extract info from specific vm-session
+    #
+
+    # Beware: output from VBoxManage should be something like this
+    # "Name:<12 spaces><uuid>"
+    # "State:<11 spaces><uuid>"
+    name=$($vboxcommand showvminfo $uuid      | grep "Name:"  | awk 'BEGIN{FS="Name:            "}{print $2}')
+    state_raw=$($vboxcommand showvminfo $uuid | grep "State:" | awk 'BEGIN{FS="State:           "}{print $2}')
+    vrdp_port=`$vboxcommand showvminfo $uuid | grep VRDP | awk '{ print $6}'`
+    vrdp_port=${vrdp_port/,/}  # Remove trailing comma
+
+    # Extract exact state from string state_raw
+    # Beware: output from VBoxManage should be exactly as the given strings, i.e. 'running', 'saved', etc.
+    echo "$state_raw" | grep -q "running"
+    if [ $? -eq 0 ]
+    then
+      state=$state_running
+    else
+      echo "$state_raw" | grep -q "saved"
+      if [ $? -eq 0 ]
+      then
+        state=$state_saved
+      else
+        echo "$state_raw" | grep -q "powered off"
+        if [ $? -eq 0 ]
+        then
+          state=$state_powered_off
+        else
+          echo "$state_raw" | grep -q "aborted"
+          if [ $? -eq 0 ]
+          then
+            state=$state_aborted
+          else
+            state=$state_unknown
+          fi
+        fi
+      fi
+    fi
+
+    # Check for option-parameter
+    case "$option" in
+    save) # Save running sessions
+      # Go on if there's a specific session name given OR if no session name is given
+      if [ "$name" == "$sessionname" ] || [ ! -n "$sessionname" ]
+      then
+        if [ "$state" == "$state_running" ]
+        then
+          echo "Saving \"$name\""
+          $vboxcommand -nologo controlvm $uuid savestate
+        fi
+      fi
+      ;;
+    backup) # Backup sessions
+      # Go on if there's a specific session name given OR if no session name is given
+      if [ "$name" == "$sessionname" ] || [ ! -n "$sessionname" ]
+      then
+
+        # Save the session to provide a stabile snapshot
+        if [ "$state" == "$state_running" ]
+        then
+          echo "Saving \"$name\""
+          $vboxcommand -nologo controlvm $uuid savestate
+
+          # Apparantly, saving a session is asynchronous, i.e. the session is not (entirely) 
+          # saved even if the command line has returned. Starting the same session immediately
+          # results in an error, stating the session is already running.
+          sleep 1
+        fi   
+
+        # Files are copied on a individual basis to backup only those files which are essential and
+        # to provide a clean backup. Log files under $machinefolder/$name/Logs are left out.
+        echo "Copy files of \"$name\""
+        mkdir -p "$backupfolder/Machines/$name/Snaphots"
+
+        # Copy the session config file
+        rsync -va "$machinefolder/$name/$name.xml" "$backupfolder/Machines/$name"
+
+        # Copy any snapshots, i.e. delta's (save state = .vdi) + snapshots (= .sav)
+        rsync -va --progress --delete "$machinefolder/$name/Snapshots/" "$backupfolder/Machines/$name/Snaphots"
+
+        # Extract the VDI file name (main session file) of the specified session and copy it
+        vdifile=$($vboxcommand showvminfo "$name" | grep "Primary master" | cut -d":" -f2 | cut -d "(" -f1 | sed -e 's/^[ \t]*//' | sed 's/[ \t]*$//')
+        rsync -va --progress "$vdifile" "$backupfolder/VDI"
+
+        # Restart session, only if is it was running before backing up
+        if [ "$state" == "$state_running" ]
+        then
+          echo "Starting \"$name\" (vrdp=$vrdp_port)"
+          $vboxcommand -nologo startvm $uuid -type vrdp
+        fi
+      fi
+      ;;
+    stop) # Stop running sessions
+      # Go on if there's a specific session name given OR if no session name is given
+      if [ "$name" == "$sessionname" ] || [ ! -n "$sessionname" ]
+      then
+        if [ "$state" == "$state_running" ]
+        then
+          echo "Stopping \"$name\""
+          # No reset, stopping is done by the operationg system within the session
+          $vboxcommand -nologo controlvm $uuid acpipowerbutton  
+        fi
+      fi
+      ;;
+    start) # Start saved sessions
+      # Sessions are started under the following conditions:
+      # - when no session name is given, all saved sessions will be started
+      # - (or) when a session name is given, only that specific session will be started
+      startsession=0
+      if ([ ! -n "$sessionname" ] && [ "$state" == "$state_saved" ]) 
+      then
+        startsession=1
+      else
+        if ([ -n "$sessionname" ] && [ "$name" == "$sessionname" ])      
+        then
+          startsession=1        
+        fi
+      fi
+      
+      if [ "$startsession" == "1" ]
+      then
+        # In any case, the session to start must not be running already
+        if [ "$state" != "$state_running" ]
+        then   
+          echo "Starting \"$name\" (vrdp=$vrdp_port)"
+          $vboxcommand -nologo startvm $uuid -type vrdp
+        fi
+      fi
+      ;;
+    autostart) # Start sessions named in config file
+      # Check existence of config file
+      if [ -e "$configfile" ]
+      then
+        # Check if session is named in machines.conf
+        # Watch the extra comma after name; this is to ensure the 
+        # whole name is searched and found and not a substring.
+        # This also requires the config file to be formatted
+        # like this: <session name>,<vrdp port>
+        confline=`cat $configfile | grep "$name,"`
+        if [ -n "$confline" ]       
+        then       
+          # The session to start must not be running already
+          if [ "$state" != "$state_running" ]
+          then          
+            # Extract vrdp-port from machines.conf
+            vrdp_port_config=`echo $confline | awk 'BEGIN{FS=","}{print $2}'`
+
+            # Check if configured port equals actual port
+            if [ "$vrdp_port_config" != "$vrdp_port" ] 
+            then 
+              # Changing of the vrdp-port can only take place on a powered-off session
+              if [ "$state" == "$state_saved" ] 
+              then
+                echo "Discarding state of \"$name\""
+                $vboxcommand -nologo discardstate $uuid
+              fi
+
+              echo "Applying vrdp-port $vrdp_port_config to \"$name\""
+              $vboxcommand -nologo modifyvm $uuid -vrdpport $vrdp_port_config
+            fi
+            
+            echo "Starting \"$name\" (vrdp=$vrdp_port_config)"
+            $vboxcommand -nologo startvm $uuid -type vrdp
+          fi        
+        fi
+      fi
+      ;;      
+    *) # Remaining parameters
+      if [ "$state" == "$state_running" ]
+      then
+        #
+        # Retrieve some runtime info for a running session
+        #
+
+        # Retrieve the pid of the vbox-session throuh 'ps'; note that only pid is extracted, not 
+        # cpu or other info. These are drawn from the 'top' command because especially cpu from 'ps'
+        # is not what is expected: it's an average cpu-load since the process started and not 
+        # the actual cpu-load. 
+        pid=$(ps -ef | grep "$name" | grep -v grep | awk '{ print $2 }')
+
+        # The 'top' command delivers the actual cpu-load and memory consumed
+        top=$(top -b -n1 -p $pid | grep $pid)
+        cpu=`echo $top | awk '{ print $9}'`
+        mem=`echo $top | awk '{ print $5}'`
+
+        # Show some output
+        echo "$name (vrdp=$vrdp_port): $state (cpu=$cpu%, mem=$mem)"
+      else # Session is not running
+
+        # Only show info when no option is given or the option is 'showrun'
+        if [ -z "$option" ] || [ $option != "showrun" ] 
+        then
+          # Show some output
+          echo "$name (vrdp=$vrdp_port): $state"
+        fi
+      fi
+      ;;
+    esac
+  done
+}
+
+#
+# Retrieve vbox executable name
+#
+
+# The OSE-version uses a all lower case name, i.e. 'vboxmanage' so we
+# have to find out which executable is available.
+if [ -n $(whereis VBoxManage | awk 'BEGIN{FS=" "}{print $2}') ]
+then
+ vboxcommand='VBoxManage'
+else
+ if [ -n $(whereis vboxmanage | awk 'BEGIN{FS=" "}{print $2}') ]
+ then
+   vboxcommand='vboxmanage'
+ else
+   echo "Either 'VBoxManage' or 'vboxmanage' is not available, exiting."
+   exit 1
+ fi
+fi
+
+# Some constants
+version='0.1'
+configfile='/etc/vbox/machines.conf'
+
+#
+# Check for a commandline option
+#
+case "$1" in
+save)
+  loop save "$2"
+  ;;
+start)
+  loop start "$2"
+  ;;
+autostart)
+  loop autostart
+  ;;  
+stop)
+  loop stop "$2"
+  ;;
+show)
+  loop show
+  ;;
+showrun)
+  loop showrun
+  ;;
+backup)
+  loop backup "$2"
+  ;;
+help)
+  help
+  ;;
+--help)
+  help  
+  ;;
+version)
+  version
+  ;;
+--version)
+  version
+  ;;
+*)
+  usage
+esac
+
+exit 0
+
