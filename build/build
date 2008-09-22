@@ -1,0 +1,24 @@
+#!/bin/sh
+
+# Read version info from configuration file version.conf.
+# Adjust version.conf to local situation.
+version="$1"
+if [ ! -n "$version" ]
+then
+  echo "Usage: build <majorversion.minorversion>"
+  exit   
+fi
+
+
+zipfile=vboxtool-$version.zip
+basedir=`pwd`
+  
+echo Building $zipfile
+
+# Create a zip file (from trunk folder):
+cd $basedir/..
+rm -f $zipfile
+zip -vr $zipfile COPYING.txt readme.txt script/vbox
+echo "Build of $zipfile completed."
+
+
