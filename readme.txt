@@ -6,7 +6,7 @@ added later.
 
 INSTALLATION
 
-- copy to /usr/local/bin
+- copy script/vbox to /usr/local/bin
 - sudo chmod +x /usr/local/bin/vbox
 
 USAGE
