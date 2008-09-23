@@ -1,17 +1,15 @@
 #!/bin/sh
 
-# Read version info from configuration file version.conf.
-# Adjust version.conf to local situation.
+# Read version info 
 version="$1"
 if [ ! -n "$version" ]
 then
-  echo "Usage: build <majorversion.minorversion>"
+  echo "Usage: build <version>"
   exit   
 fi
 
-
-zipfile=vboxtool-$version.zip
 basedir=`pwd`
+zipfile=$basedir/vboxtool-$version.zip
   
 echo Building $zipfile
 
