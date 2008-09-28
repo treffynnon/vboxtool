@@ -1,0 +1,47 @@
+Revision:
+0.1 [2008-09-20] (mentioned modifications not under revision control)
+  2008-09-20
+  - Help restructured.
+  - Option --version|version added.
+  2008-09-15
+  - Autostart option. Starts all sessions in a predefined configuration file.
+  2008-09-10
+  - Bug fixed for retrieving pid when sessions are started with the VBoxHeadless command.
+    In contrast to the VBoxManage command, VBoxHeadless does not show the session uuid in the
+    ps command, while that was imperative because filtering (grep) takes place on that uuid. 
+    Solved by filtering on session name; this is less 'secure' as an unique id, but the 
+    session name is displayed by both commands so this is the only solution.
+    Later this can be replaced by the new 'metrics' command, introduced in 2.0.0, but that means
+    the script will only work (for that part at least) for 2.0.0 which is at the moment not desirable.  2008-09-08
+  - Bug fixed for trapping multiple instances of VBoxManage. This is the case 
+    on rpm-based systems where there are multiple symlinks 'VboxManage'
+    - Original line: [ -n $(whereis VBoxManage | awk 'BEGIN{FS="VBoxManage "}{print $2}') ]
+    - Changed to:    [ -n $(whereis VBoxManage | awk 'BEGIN{FS=" "}{print $2}') ]
+  2008-09-02
+  - Backup a specific session: vbox backup <session name>
+    - running sessions are saved and started after backup has completed
+    - this is only a first approach: copy complete vdi file
+      - this is taking a long time because the complete VDI file has to be copied each and every time
+      - this is not a real solution in real production systems
+  - Save a specific session: vbox save <session name>
+  - Start a specific session: vbox save <session name>
+  - Stop all running sessions or a specific session: vbox stop [session name]
+  - Renamed option 'showall' to 'show'
+  - Code refactoring
+  2008-08-19
+  - Renamed from vbox-tool to vbox
+  - Only show saved session on shutdown
+  - Option 'shutdown' changed to 'save' (cause that's what happening)
+  - For running sessions, show runtime info: cpu-load and memory 
+  - Added option 'showrun': retrieve status of running sessions
+  - Added option 'start': start all saved sessions
+    - powered off & aborted sessions are left alone
+  - Added option 'showall': retrieve status of all sessions
+  - No-parameter or incorrect parameter invocation gives usage-page
+  - Added option '--help': shows usage
+  - Show configured vrdp-port while showing and starting sessions
+
+0.0 [2008-01-03]
+  (never released under revision control)
+  - Initial release 
+  
