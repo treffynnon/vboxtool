@@ -27,7 +27,6 @@ version()
   echo "vbox $version"
   echo "Copyright 2008 Mark Baaijens"
   echo "License GNU GPL version 3 or later"
-
 }
 
 usage()
@@ -57,21 +56,25 @@ help()
   echo "  --version|version Version info."
   echo "  --help|help       This help."
   echo ""
-  echo "Through autostart, sessions can be started in a controlled way: only the"
-  echo "sessions in the configuration file will be started. As a bonus, the vrdp port"
-  echo "(also configurable) can be set at startup time."
-  echo "Option autostart depends on a configuration file, $configfile." 
-  echo "Each line in this file is a separate machine. Structure of each line:"
-  echo "<session-name>,<vrdp-port>. The given vrdp-port is set statically to the"
-  echo "session, prior to starting; state is discarded when session is in savestate."
+  echo "Note on autostart. Sessions can be started in a controlled way, only the"
+  echo "sessions in the configuration file will be started. As a bonus, the VRDP port"
+  echo "(also configurable) can be set at startup time. Option autostart depends on a"
+  echo "configuration file, $configfile. The given VRDP port is set "
+  echo "statically to the session, prior to starting; state is discarded when session"
+  echo "is in savestate."
+  echo ""  
+  echo "Notes on $configfile:"
+  echo "- Each line in this file is a separate machine." 
+  echo "- Structure of each line: <session name>,<vrdp port>,<host port>-<guest port>|..."
+  echo "- Do not use spaces before and after the ',' delimiter."  
+  echo "- Lines can be commented out by '#'"
   echo ""  
   echo "Example for $configfile:"
   echo "Ubuntu Desktop,3391"
-  echo "Ubuntu JeOS,3392"
-  echo "Do not use spaces before and after the ',' delimiter."  
+  echo "Ubuntu JeOS,3392,2022-22|80-80"
   echo ""  
-  echo "Saving sessions is preferred above stopping: this is faster when restoring"
-  echo "and safer because session can appear to be cold booted."
+  echo "Note on stopping sessions. Saving sessions is preferred above stopping: this"
+  echo "is faster when restoring and safer because session can appear to be cold booted."
 }
 
 loop()
@@ -266,26 +269,75 @@ loop()
         # This also requires the config file to be formatted
         # like this: <session name>,<vrdp port>
         confline=`cat $configfile | grep "$name,"`
-        if [ -n "$confline" ]       
+
+        # Only start session when it is found, and not commented out by '#'                 
+        if [ -n "$confline" ] && [ "${confline:0:1}" != "#" ]     
         then       
           # The session to start must not be running already
           if [ "$state" != "$state_running" ]
           then          
-            # Extract vrdp-port from machines.conf
+            # Extract VRDP port from machines.conf
             vrdp_port_config=`echo $confline | awk 'BEGIN{FS=","}{print $2}'`
 
             # Check if configured port equals actual port
             if [ "$vrdp_port_config" != "$vrdp_port" ] 
             then 
-              # Changing of the vrdp-port can only take place on a powered-off session
+              # Changing of the VRDP port can only take place on a powered-off session
               if [ "$state" == "$state_saved" ] 
               then
                 echo "Discarding state of \"$name\""
                 $vboxcommand -nologo discardstate $uuid
               fi
 
-              echo "Applying vrdp-port $vrdp_port_config to \"$name\""
+              echo "Applying VRDP port $vrdp_port_config to \"$name\""
               $vboxcommand -nologo modifyvm $uuid -vrdpport $vrdp_port_config
+            fi
+
+            #
+            # Port forwarding
+            #
+            
+            # Remove all port forwarding pairs contaning 'vboxtool'; these are considered
+            # 'property' of VBoxTool. Hence, they may be deleted at will (by VBoxTool).
+            # By using such a strategy, we do not have to check if and how a particular 
+            # port pair is defined; it's a kind of 'brute force' but it's very simple and
+            # bullet proof to implement (KISS principle).             
+            # This strategy also ensures that settngs are always removed, so that so setting 
+            # becomes orphaned.
+            for data_key in $($vboxcommand -nologo getextradata $uuid enumerate | grep "VBoxInternal/Devices" | grep vboxtool | awk 'BEGIN{FS=","}{print $1}' | awk 'BEGIN{FS=": "}{print $2}')
+            do
+              # Variable data_key consist op the whole specifier, so inclusive trailing 'Protocol',
+              # 'HostPort' or 'GuestPort'.
+              $vboxcommand -nologo setextradata $uuid $data_key
+            done
+
+            # Extract portforwarding definition from machines.conf
+            # This string has the following syntax: <host port>-<guest port>|... 
+            # For example: 2022-22|80-80
+            port_forward_config=`echo $confline | awk 'BEGIN{FS=","}{print $3}'`
+
+            # Is port forwarding defined?
+            if [ -n "$port_forward_config" ] 
+            then  
+              # Iterate over all port-pairs defined in port_forward_config, separated by '|'
+              port_forward_list=(`echo $port_forward_config | tr '|' ' '`)
+              
+              for port_pair in ${port_forward_list[@]}
+              do 
+                # Because port forwarding configuration can be made to the session, 
+                # even when it is running (!) or when it is in save-state, there's no need 
+                # to check if the session is in save-state (unlike configuring the VRDP port).
+                         
+                # Apply port forwarding settings
+                echo "Apply port forwarding $port_pair to \"$name\""
+                
+                # Variable data_id is only a party specifier, so without trailing 'Protocol',
+                # 'HostPort' or 'GuestPort'.              
+                data_id="VBoxInternal/Devices/pcnet/0/LUN#0/Config/vboxtool-tcp-$port_pair"
+                $vboxcommand -nologo setextradata $uuid $data_id/Protocol TCP
+                $vboxcommand -nologo setextradata $uuid $data_id/HostPort `echo $port_pair | awk 'BEGIN{FS="-"}{print $1}'`
+                $vboxcommand -nologo setextradata $uuid $data_id/GuestPort `echo $port_pair | awk 'BEGIN{FS="-"}{print $2}'`
+              done
             fi
             
             echo "Starting \"$name\" (vrdp=$vrdp_port_config)"
@@ -336,19 +388,19 @@ loop()
 # have to find out which executable is available.
 if [ -n $(whereis VBoxManage | awk 'BEGIN{FS=" "}{print $2}') ]
 then
- vboxcommand='VBoxManage'
+  vboxcommand='VBoxManage'
 else
- if [ -n $(whereis vboxmanage | awk 'BEGIN{FS=" "}{print $2}') ]
- then
-   vboxcommand='vboxmanage'
- else
-   echo "Either 'VBoxManage' or 'vboxmanage' is not available, exiting."
-   exit 1
- fi
+  if [ -n $(whereis vboxmanage | awk 'BEGIN{FS=" "}{print $2}') ]
+  then
+    vboxcommand='vboxmanage'
+  else
+    echo "Either 'VBoxManage' or 'vboxmanage' is not available, exiting."
+    exit 1
+  fi
 fi
 
 # Some constants
-version='0.1'
+version='0.2'
 configfile='/etc/vbox/machines.conf'
 
 #
