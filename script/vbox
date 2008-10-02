@@ -24,7 +24,7 @@
 
 version()
 {
-  echo "vbox $version"
+  echo "VBoxTool version $version"
   echo "Copyright 2008 Mark Baaijens"
   echo "License GNU GPL version 3 or later"
 }
@@ -58,10 +58,10 @@ help()
   echo ""
   echo "Note on autostart. Sessions can be started in a controlled way, only the"
   echo "sessions in the configuration file will be started. As a bonus, the VRDP port"
-  echo "(also configurable) can be set at startup time. Option autostart depends on a"
-  echo "configuration file, $configfile. The given VRDP port is set "
-  echo "statically to the session, prior to starting; state is discarded when session"
-  echo "is in savestate."
+  echo "(also configurable) and port forwarding can be set at startup time. These options"
+  echo "depends on a configuration file, $configfile. The given ports"
+  echo "are set statically to the session, prior to starting. When VRDP port has to be "
+  echo "changed, state is discarded when session is in savestate."
   echo ""  
   echo "Notes on $configfile:"
   echo "- Each line in this file is a separate machine." 
@@ -400,7 +400,7 @@ else
 fi
 
 # Some constants
-version='0.2'
+version='0.3'
 configfile='/etc/vbox/machines.conf'
 
 #
