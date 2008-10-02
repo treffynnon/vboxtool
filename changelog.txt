@@ -1,5 +1,5 @@
 Revision:
-0.2
+0.2 [2008-10-02]
   - Lines in /etc/vbox/machines.conf can be commented out by '#'
   - Added portforwarding. Structure of /etc/vbox/machines.conf:
     <session name>,<vrdp port>,<host port>-<guest port>|..."
@@ -8,7 +8,7 @@ Revision:
       'property' of VBoxTool and thus removed prior to setting portforwarding, to obtain a clean 
       situation with no orphaned settings.
 
-0.1 (modifications not under revision control)
+0.1 [2008-09-23] (modifications not under revision control)
   2008-09-20
   - Help restructured.
   - Option --version|version added.
