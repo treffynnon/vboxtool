@@ -1,4 +1,9 @@
 Revision:
+0.3
+  - To achieve naming consistency between package name and names of various parts: 
+    - Main script 'vbox' is renamed to 'vboxtool'
+    - Config folder is moved from /etc/vbox to /etc/vboxtool
+
 0.2 [2008-10-02]
   - Lines in /etc/vbox/machines.conf can be commented out by '#'
   - Added portforwarding. Structure of /etc/vbox/machines.conf:

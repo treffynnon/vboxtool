@@ -1,8 +1,8 @@
 #!/bin/bash
 #
-#  vbox: Utility to retrieve status and control VirtualBox sessions
+#  vboxtool: Utility to retrieve status and control VirtualBox sessions
 #
-#  Usage: Type 'vbox help' for more information
+#  Usage: Type 'vboxtool help' for more information
 #
 #  Copyright (C) 2008 Mark Baaijens <mark.baaijens@gmail.com>
 #
@@ -31,14 +31,14 @@ version()
 
 usage()
 {
-  echo "Usage: vbox show|showrun|start|autostart|save|stop|version|help [session]"
+  echo "Usage: vboxtool show|showrun|start|autostart|save|stop|version|help [session]"
   echo "Show info about VirtualBox sessions or control those sessions."
-  echo "Type 'vbox help' for more information."    
+  echo "Type 'vboxtool help' for more information."    
 }
 
 help()
 {
-  echo "Usage: vbox OPTION [session]"
+  echo "Usage: vboxtool OPTION [session]"
   echo "Show info about VirtualBox sessions or control those sessions."
   echo ""
   echo "Options:"
@@ -401,7 +401,7 @@ fi
 
 # Some constants
 version='0.3'
-configfile='/etc/vbox/machines.conf'
+configfile='/etc/vboxtool/machines.conf'
 
 #
 # Check for a commandline option

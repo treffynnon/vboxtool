@@ -6,12 +6,17 @@ added later.
 
 INSTALLATION
 
-- copy script/vbox to /usr/local/bin
-- sudo chmod +x /usr/local/bin/vbox
+- copy script/vboxtool to /usr/local/bin
+- sudo chmod +x /usr/local/bin/vboxtool
+
+UPGRADING FROM 0.2
+
+- Config folder is moved from /etc/vbox to /etc/vboxtool. Rename this folder
+- Main script 'vbox' is renamed to 'vboxtool'
 
 USAGE
 
-Type 'vbox help' for more info.
+Type 'vboxtool help' for more info.
 
 KNOWN ISSUES
 
