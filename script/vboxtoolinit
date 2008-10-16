@@ -1,0 +1,107 @@
+#!/bin/bash
+#
+#  vboxtoolinit: Frontend for vboxtool for auto start sessions when booting and save 
+#                sessions when host is stopped
+#
+#  This is a wrapper for vboxtool. It is to be placed in /etc/init.d to provide auto
+#  start at boot time and stop when the host is halted. Because it's a wrapper, the 
+#  original functions of vboxtool can be executed as usual, without cd'ing to 
+#  /etc/init.d.
+#
+#  Usage: Should be placed in /etc/init.d
+#
+#  Copyright (C) 2008 Mark Baaijens <mark.baaijens@gmail.com>
+#
+#  This file is part of VBoxTool.
+#
+#  VBoxTool is free software: you can redistribute it and/or modify
+#  it under the terms of the GNU General Public License as published by
+#  the Free Software Foundation, either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  VBoxTool is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#  GNU General Public License for more details.
+#
+#  You should have received a copy of the GNU General Public License
+#  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+### BEGIN INIT INFO
+# Provides:          vboxtool
+# Required-Start:    $syslog $local_fs
+# Required-Stop:     $syslog $local_fs
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Description:       Controls VirtualBox sessions
+### END INIT INFO
+
+
+start()
+{
+  # Command mapping between vboxtoolinit and vbox. Because the init-system requires specific 
+  # commands like 'start' and 'stop' and we don't want to execute these commands literally, 
+  # vboxtoolinit maps these to the desired command in vboxtool.
+
+  # 'vboxtoolinit start' maps to 'vboxtool autostart'; when the host boots, all sessions in 
+  # the config file /etc/vboxtool/machines.conf are started
+  `$su_command "vboxtool autostart"` > /dev/null
+}
+
+stop()
+{
+  # 'vboxtoolinit stop' maps to 'vboxtool save'; when the host halts, all running sessions 
+  # are saved, instead of stopped.
+  `$su_command "vboxtool save"` > /dev/null
+}
+
+restart()
+{
+  `$su_command "vboxtool save"` > /dev/null
+  `$su_command "vboxtool autostart"` > /dev/null
+}
+
+# Some constants
+config_file='/etc/vboxtool/vboxtool.conf'
+
+# Retrieve settings from config file, just by executing the config file.
+# Config file $config_file should look like this:
+# vbox_user='<user name>'
+if [ -f $config_file ]
+then
+  . $config_file
+else
+  echo "Error: $config_file does not exist. Exiting."
+  exit 1
+fi
+
+if [ ! -n "$vbox_user" ]
+then
+  echo "Error: vbox_user not defined in $config_file. Exiting."
+  exit 1  
+fi
+
+# Implementation of user control, execute several commands as another (predefined) user, 
+# thus freeing the main script vboxtool from any user related issues.
+su_command="su $vbox_user -c"
+
+#
+# Check for a commandline option
+#
+case "$1" in
+start)
+  start
+  ;;
+stop)
+  stop
+  ;;
+restart)
+  restart
+  ;;  
+*)
+  ;;  
+esac
+
+exit 0
+

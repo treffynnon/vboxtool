@@ -1,5 +1,9 @@
 Revision:
 0.3
+  - Added vboxtoolinit for auto start sessions at boot time and auto save sessions when
+    host is stopped. Depends on /etc/vboxtool/vboxtool.conf. Structure: 
+    vbox_user='<user name>'
+    As for now, there's only one option to configure.
   - To achieve naming consistency between package name and names of various parts: 
     - Main script 'vbox' is renamed to 'vboxtool'
     - Config folder is moved from /etc/vbox to /etc/vboxtool
