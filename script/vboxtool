@@ -378,14 +378,14 @@ loop()
         mem=`echo $top | awk '{ print $5}'`
 
         # Show some output
-        echo "$name (vrdp=$vrdp_port): $state (cpu=$cpu%, mem=$mem)"
+        echo "$name: state=$state vrdp=$vrdp_port cpu=$cpu% mem=$mem"
       else # Session is not running
 
         # Only show info when no option is given or the option is 'showrun'
         if [ -z "$option" ] || [ $option != "showrun" ] 
         then
           # Show some output
-          echo "$name (vrdp=$vrdp_port): $state"
+          echo "$name: state=$state vrdp=$vrdp_port"
         fi
       fi
       ;;
