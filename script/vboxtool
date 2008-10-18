@@ -413,7 +413,7 @@ else
 fi
 
 # Some constants
-version='0.3'
+version='0.4'
 configfile='/etc/vboxtool/machines.conf'
 
 #
