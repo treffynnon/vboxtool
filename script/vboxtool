@@ -59,17 +59,17 @@ help()
   echo "Note on autostart. Sessions can be started in a controlled way, only the"
   echo "sessions in the configuration file will be started. As a bonus, the VRDP port"
   echo "(also configurable) and port forwarding can be set at startup time. These"
-  echo "options are controlled by $configfile. The given ports"
+  echo "options are controlled by $config_file. The given ports"
   echo "are set statically to the session, prior to starting. When VRDP port has to be "
   echo "changed, state is discarded when session is in savestate."
   echo ""  
-  echo "Notes on $configfile:"
+  echo "Notes on $config_file:"
   echo "- Each line in this file is a separate machine." 
   echo "- Structure of each line: <session name>,<vrdp port>,<host port>-<guest port>|..."
   echo "- Do not use spaces before and after the ',' delimiter."  
   echo "- Lines can be commented out by '#'"
   echo ""  
-  echo "Example for $configfile:"
+  echo "Example for $config_file:"
   echo "Ubuntu Desktop,3391"
   echo "Ubuntu JeOS,3392,2022-22|80-80"
   echo ""  
@@ -94,7 +94,7 @@ loop()
 {
   # Read commandline parameter(s)
   option=$1
-  sessionname=$2
+  option_session_name=$2
 
   # Several state constants
   state_running='running'
@@ -107,32 +107,32 @@ loop()
   if [ "$option" == "backup" ]
   then
     # Fixed folder
-    vboxfolder="$HOME/.VirtualBox"   
+    vbox_folder="$HOME/.VirtualBox"   
 
     # Dynamic folders
-    vdifolder=$($vboxcommand list systemproperties | grep "Default VDI" | cut -d":" -f2 | sed -e 's/[[:space:]]//g')
-    machinefolder=$($vboxcommand list systemproperties | grep "Default machine" | cut -d":" -f2 | sed -e 's/[[:space:]]//g')
+    vdi_folder=$($vbox_command list systemproperties | grep "Default VDI" | cut -d":" -f2 | sed -e 's/[[:space:]]//g')
+    machine_folder=$($vbox_command list systemproperties | grep "Default machine" | cut -d":" -f2 | sed -e 's/[[:space:]]//g')
 
     # Backup folder is fixed and relative to the vbox folder
-    backupfolder="$vboxfolder/.backup"
-    echo "Backup folder: $backupfolder"
+    backup_folder="$vbox_folder/.backup"
+    echo "Backup folder: $backup_folder"
 
-    # Create a backupfolder and subfolders
-    mkdir -p $backupfolder
-    mkdir -p $backupfolder/Machines
-    mkdir -p $backupfolder/VDI
+    # Create a backup folder and subfolders
+    mkdir -p $backup_folder
+    mkdir -p $backup_folder/Machines
+    mkdir -p $backup_folder/VDI
 
     # Copy the vbox config file
-    rsync -va "$vboxfolder/VirtualBox.xml" "$backupfolder"
+    rsync -va "$vbox_folder/VirtualBox.xml" "$backup_folder"
   fi
   
   # Actions specific for backup
   if [ "$option" == "autostart" ]
   then  
     # Check if config file exists
-    if [ ! -e "$configfile" ]
+    if [ ! -e "$config_file" ]
     then
-      echo "Configuration file $configfile not found"
+      echo "Configuration file $config_file not found"
     fi
   fi  
 
@@ -140,7 +140,7 @@ loop()
   # Iterate over all registered vm's
   #
   # Beware: output from VBoxManage should be something like this: "UUID:<12 spaces><uuid>"
-  for uuid in $($vboxcommand list vms | grep UUID: | awk 'BEGIN{FS="UUID:            "}{print $2}')
+  for uuid in $($vbox_command list vms | grep UUID: | awk 'BEGIN{FS="UUID:            "}{print $2}')
   do
     #
     # Extract info from specific vm-session
@@ -149,9 +149,9 @@ loop()
     # Beware: output from VBoxManage should be something like this
     # "Name:<12 spaces><uuid>"
     # "State:<11 spaces><uuid>"
-    name=$($vboxcommand showvminfo $uuid      | grep "Name:"  | awk 'BEGIN{FS="Name:            "}{print $2}')
-    state_raw=$($vboxcommand showvminfo $uuid | grep "State:" | awk 'BEGIN{FS="State:           "}{print $2}')
-    vrdp_port=`$vboxcommand showvminfo $uuid | grep VRDP | awk '{ print $6}'`
+    name=$($vbox_command showvminfo $uuid      | grep "Name:"  | awk 'BEGIN{FS="Name:            "}{print $2}')
+    state_raw=$($vbox_command showvminfo $uuid | grep "State:" | awk 'BEGIN{FS="State:           "}{print $2}')
+    vrdp_port=`$vbox_command showvminfo $uuid | grep VRDP | awk '{ print $6}'`
     vrdp_port=${vrdp_port/,/}  # Remove trailing comma
 
     # Extract exact state from string state_raw
@@ -186,25 +186,25 @@ loop()
     case "$option" in
     save) # Save running sessions
       # Go on if there's a specific session name given OR if no session name is given
-      if [ "$name" == "$sessionname" ] || [ ! -n "$sessionname" ]
+      if [ "$name" == "$option_session_name" ] || [ ! -n "$option_session_name" ]
       then
         if [ "$state" == "$state_running" ]
         then
           echo "Saving \"$name\""
-          $vboxcommand -nologo controlvm $uuid savestate
+          $vbox_command -nologo controlvm $uuid savestate
         fi
       fi
       ;;
     backup) # Backup sessions
       # Go on if there's a specific session name given OR if no session name is given
-      if [ "$name" == "$sessionname" ] || [ ! -n "$sessionname" ]
+      if [ "$name" == "$option_session_name" ] || [ ! -n "$option_session_name" ]
       then
 
         # Save the session to provide a stabile snapshot
         if [ "$state" == "$state_running" ]
         then
           echo "Saving \"$name\""
-          $vboxcommand -nologo controlvm $uuid savestate
+          $vbox_command -nologo controlvm $uuid savestate
 
           # Apparantly, saving a session is asynchronous, i.e. the session is not (entirely) 
           # saved even if the command line has returned. Starting the same session immediately
@@ -213,37 +213,37 @@ loop()
         fi   
 
         # Files are copied on a individual basis to backup only those files which are essential and
-        # to provide a clean backup. Log files under $machinefolder/$name/Logs are left out.
+        # to provide a clean backup. Log files under $machine_folder/$name/Logs are left out.
         echo "Copy files of \"$name\""
-        mkdir -p "$backupfolder/Machines/$name/Snaphots"
+        mkdir -p "$backup_folder/Machines/$name/Snaphots"
 
         # Copy the session config file
-        rsync -va "$machinefolder/$name/$name.xml" "$backupfolder/Machines/$name"
+        rsync -va "$machine_folder/$name/$name.xml" "$backup_folder/Machines/$name"
 
         # Copy any snapshots, i.e. delta's (save state = .vdi) + snapshots (= .sav)
-        rsync -va --progress --delete "$machinefolder/$name/Snapshots/" "$backupfolder/Machines/$name/Snaphots"
+        rsync -va --progress --delete "$machine_folder/$name/Snapshots/" "$backup_folder/Machines/$name/Snaphots"
 
         # Extract the VDI file name (main session file) of the specified session and copy it
-        vdifile=$($vboxcommand showvminfo "$name" | grep "Primary master" | cut -d":" -f2 | cut -d "(" -f1 | sed -e 's/^[ \t]*//' | sed 's/[ \t]*$//')
-        rsync -va --progress "$vdifile" "$backupfolder/VDI"
+        vdifile=$($vbox_command showvminfo "$name" | grep "Primary master" | cut -d":" -f2 | cut -d "(" -f1 | sed -e 's/^[ \t]*//' | sed 's/[ \t]*$//')
+        rsync -va --progress "$vdifile" "$backup_folder/VDI"
 
         # Restart session, only if is it was running before backing up
         if [ "$state" == "$state_running" ]
         then
           echo "Starting \"$name\" (vrdp=$vrdp_port)"
-          $vboxcommand -nologo startvm $uuid -type vrdp
+          $vbox_command -nologo startvm $uuid -type vrdp
         fi
       fi
       ;;
     stop) # Stop running sessions
       # Go on if there's a specific session name given OR if no session name is given
-      if [ "$name" == "$sessionname" ] || [ ! -n "$sessionname" ]
+      if [ "$name" == "$option_session_name" ] || [ ! -n "$option_session_name" ]
       then
         if [ "$state" == "$state_running" ]
         then
           echo "Stopping \"$name\""
           # No reset, stopping is done by the operationg system within the session
-          $vboxcommand -nologo controlvm $uuid acpipowerbutton  
+          $vbox_command -nologo controlvm $uuid acpipowerbutton  
         fi
       fi
       ;;
@@ -251,46 +251,46 @@ loop()
       # Sessions are started under the following conditions:
       # - when no session name is given, all saved sessions will be started
       # - (or) when a session name is given, only that specific session will be started
-      startsession=0
-      if ([ ! -n "$sessionname" ] && [ "$state" == "$state_saved" ]) 
+      start_session=0
+      if ([ ! -n "$option_session_name" ] && [ "$state" == "$state_saved" ]) 
       then
-        startsession=1
+        start_session=1
       else
-        if ([ -n "$sessionname" ] && [ "$name" == "$sessionname" ])      
+        if ([ -n "$option_session_name" ] && [ "$name" == "$option_session_name" ])      
         then
-          startsession=1        
+          start_session=1        
         fi
       fi
       
-      if [ "$startsession" == "1" ]
+      if [ "$start_session" == "1" ]
       then
         # In any case, the session to start must not be running already
         if [ "$state" != "$state_running" ]
         then   
           echo "Starting \"$name\" (vrdp=$vrdp_port)"
-          $vboxcommand -nologo startvm $uuid -type vrdp
+          $vbox_command -nologo startvm $uuid -type vrdp
         fi
       fi
       ;;
     autostart) # Start sessions named in config file
       # Check existence of config file
-      if [ -e "$configfile" ]
+      if [ -e "$config_file" ]
       then
         # Check if session is named in machines.conf
         # Watch the extra comma after name; this is to ensure the 
         # whole name is searched and found and not a substring.
         # This also requires the config file to be formatted
         # like this: <session name>,<vrdp port>
-        confline=`cat $configfile | grep "$name,"`
+        con_fline=`cat $config_file | grep "$name,"`
 
         # Only start session when it is found, and not commented out by '#'                 
-        if [ -n "$confline" ] && [ "${confline:0:1}" != "#" ]     
+        if [ -n "$con_fline" ] && [ "${con_fline:0:1}" != "#" ]     
         then       
           # The session to start must not be running already
           if [ "$state" != "$state_running" ]
           then          
             # Extract VRDP port from machines.conf
-            vrdp_port_config=`echo $confline | awk 'BEGIN{FS=","}{print $2}'`
+            vrdp_port_config=`echo $con_fline | awk 'BEGIN{FS=","}{print $2}'`
 
             # Check if configured port equals actual port
             if [ "$vrdp_port_config" != "$vrdp_port" ] 
@@ -299,11 +299,11 @@ loop()
               if [ "$state" == "$state_saved" ] 
               then
                 echo "Discarding state of \"$name\""
-                $vboxcommand -nologo discardstate $uuid
+                $vbox_command -nologo discardstate $uuid
               fi
 
               echo "Applying VRDP port $vrdp_port_config to \"$name\""
-              $vboxcommand -nologo modifyvm $uuid -vrdpport $vrdp_port_config
+              $vbox_command -nologo modifyvm $uuid -vrdpport $vrdp_port_config
             fi
 
             #
@@ -317,17 +317,17 @@ loop()
             # bullet proof to implement (KISS principle).             
             # This strategy also ensures that settngs are always removed, so that so setting 
             # becomes orphaned.
-            for data_key in $($vboxcommand -nologo getextradata $uuid enumerate | grep "VBoxInternal/Devices" | grep vboxtool | awk 'BEGIN{FS=","}{print $1}' | awk 'BEGIN{FS=": "}{print $2}')
+            for data_key in $($vbox_command -nologo getextradata $uuid enumerate | grep "VBoxInternal/Devices" | grep vboxtool | awk 'BEGIN{FS=","}{print $1}' | awk 'BEGIN{FS=": "}{print $2}')
             do
               # Variable data_key consist op the whole specifier, so inclusive trailing 'Protocol',
               # 'HostPort' or 'GuestPort'.
-              $vboxcommand -nologo setextradata $uuid $data_key
+              $vbox_command -nologo setextradata $uuid $data_key
             done
 
             # Extract portforwarding definition from machines.conf
             # This string has the following syntax: <host port>-<guest port>|... 
             # For example: 2022-22|80-80
-            port_forward_config=`echo $confline | awk 'BEGIN{FS=","}{print $3}'`
+            port_forward_config=`echo $con_fline | awk 'BEGIN{FS=","}{print $3}'`
 
             # Is port forwarding defined?
             if [ -n "$port_forward_config" ] 
@@ -347,14 +347,14 @@ loop()
                 # Variable data_id is only a party specifier, so without trailing 'Protocol',
                 # 'HostPort' or 'GuestPort'.              
                 data_id="VBoxInternal/Devices/pcnet/0/LUN#0/Config/vboxtool-tcp-$port_pair"
-                $vboxcommand -nologo setextradata $uuid $data_id/Protocol TCP
-                $vboxcommand -nologo setextradata $uuid $data_id/HostPort `echo $port_pair | awk 'BEGIN{FS="-"}{print $1}'`
-                $vboxcommand -nologo setextradata $uuid $data_id/GuestPort `echo $port_pair | awk 'BEGIN{FS="-"}{print $2}'`
+                $vbox_command -nologo setextradata $uuid $data_id/Protocol TCP
+                $vbox_command -nologo setextradata $uuid $data_id/HostPort `echo $port_pair | awk 'BEGIN{FS="-"}{print $1}'`
+                $vbox_command -nologo setextradata $uuid $data_id/GuestPort `echo $port_pair | awk 'BEGIN{FS="-"}{print $2}'`
               done
             fi
             
             echo "Starting \"$name\" (vrdp=$vrdp_port_config)"
-            $vboxcommand -nologo startvm $uuid -type vrdp
+            $vbox_command -nologo startvm $uuid -type vrdp
           fi        
         fi
       fi
@@ -401,11 +401,11 @@ loop()
 # have to find out which executable is available.
 if [ -n $(whereis VBoxManage | awk 'BEGIN{FS=" "}{print $2}') ]
 then
-  vboxcommand='VBoxManage'
+  vbox_command='VBoxManage'
 else
   if [ -n $(whereis vboxmanage | awk 'BEGIN{FS=" "}{print $2}') ]
   then
-    vboxcommand='vboxmanage'
+    vbox_command='vboxmanage'
   else
     echo "Either 'VBoxManage' or 'vboxmanage' is not available, exiting."
     exit 1
@@ -414,7 +414,7 @@ fi
 
 # Some constants
 version='0.4'
-configfile='/etc/vboxtool/machines.conf'
+config_file='/etc/vboxtool/machines.conf'
 
 #
 # Check for a commandline option
