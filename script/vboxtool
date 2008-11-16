@@ -31,7 +31,7 @@ version()
 
 usage()
 {
-  echo "Usage: vboxtool show|showrun|start|autostart|save|stop|version|help [session]"
+  echo "Usage: vboxtool show|showrun|showconfig|start|autostart|save|stop|version|help [session]"
   echo "Show info about VirtualBox sessions or control those sessions."
   echo "Type 'vboxtool help' for more information."    
 }
@@ -44,6 +44,7 @@ help()
   echo "Options:"
   echo "  show              Show status of all sessions."
   echo "  showrun           Only show status of running sessions."
+  echo "  showconfig        Show configuration."
   echo "  start [session]   Start all saved sessions or only the given session."
   echo "                    When no session name is given, all saved sessions will be"
   echo "                    started; powered off and aborted sessions are left alone."  
@@ -59,17 +60,17 @@ help()
   echo "Note on autostart. Sessions can be started in a controlled way, only the"
   echo "sessions in the configuration file will be started. As a bonus, the VRDP port"
   echo "(also configurable) and port forwarding can be set at startup time. These"
-  echo "options are controlled by $config_file. The given ports"
+  echo "options are controlled by $machines_conf. The given ports"
   echo "are set statically to the session, prior to starting. When VRDP port has to be "
   echo "changed, state is discarded when session is in savestate."
   echo ""  
-  echo "Notes on $config_file:"
+  echo "Notes on $machines_conf:"
   echo "- Each line in this file is a separate machine." 
   echo "- Structure of each line: <session name>,<vrdp port>,<host port>-<guest port>|..."
   echo "- Do not use spaces before and after the ',' delimiter."  
   echo "- Lines can be commented out by '#'"
   echo ""  
-  echo "Example for $config_file:"
+  echo "Example for $machines_conf:"
   echo "Ubuntu Desktop,3391"
   echo "Ubuntu JeOS,3392,2022-22|80-80"
   echo ""  
@@ -88,6 +89,21 @@ help()
   echo "machines.conf: all running sessions will be saved by a 'vboxtool save' command."
   echo ""    
   echo "See http://vboxtool.sourceforge.net for more details."  
+}
+
+showconfig()
+{
+  echo $vboxtool_conf
+  cat $vboxtool_conf | while read conf_line
+  do
+    echo ' ' $conf_line
+  done
+
+  echo $machines_conf
+  cat $machines_conf | while read conf_line
+  do
+    echo ' ' $conf_line
+  done
 }
 
 loop()
@@ -130,9 +146,9 @@ loop()
   if [ "$option" == "autostart" ]
   then  
     # Check if config file exists
-    if [ ! -e "$config_file" ]
+    if [ ! -e "$machines_conf" ]
     then
-      echo "Configuration file $config_file not found"
+      echo "Configuration file $machines_conf not found"
     fi
   fi  
 
@@ -274,14 +290,14 @@ loop()
       ;;
     autostart) # Start sessions named in config file
       # Check existence of config file
-      if [ -e "$config_file" ]
+      if [ -e "$machines_conf" ]
       then
         # Check if session is named in machines.conf
         # Watch the extra comma after name; this is to ensure the 
         # whole name is searched and found and not a substring.
         # This also requires the config file to be formatted
         # like this: <session name>,<vrdp port>
-        con_fline=`cat $config_file | grep "$name,"`
+        con_fline=`cat $machines_conf | grep "$name,"`
 
         # Only start session when it is found, and not commented out by '#'                 
         if [ -n "$con_fline" ] && [ "${con_fline:0:1}" != "#" ]     
@@ -414,7 +430,8 @@ fi
 
 # Some constants
 version='0.4'
-config_file='/etc/vboxtool/machines.conf'
+machines_conf='/etc/vboxtool/machines.conf'
+vboxtool_conf='/etc/vboxtool/vboxtool.conf'
 
 #
 # Check for a commandline option
@@ -440,6 +457,9 @@ showrun)
   ;;
 backup)
   loop backup "$2"
+  ;;
+showconfig)
+  showconfig
   ;;
 help)
   help

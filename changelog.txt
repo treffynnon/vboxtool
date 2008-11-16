@@ -1,7 +1,10 @@
 Revision:
 0.4
+  - Added option 'vboxtool showconfig', showing config files vboxtool.conf and machines.conf
+    from /etc/vboxtool (feature request from tracker: #2275280).
   - Modified output of 'show' and 'showrun' command for consistency and easy text manipulation
   - Code refactoring, changed all variable name: consistent separator '_'
+
 0.3 [2008-10-16]
   - Added vboxtoolinit for auto start sessions at boot time and auto save sessions when
     host is stopped. Depends on /etc/vboxtool/vboxtool.conf. Structure: 
