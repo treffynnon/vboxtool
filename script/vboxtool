@@ -259,7 +259,7 @@ loop()
         then
           echo "Stopping \"$name\""
           # No reset, stopping is done by the operationg system within the session
-          $vbox_command -nologo controlvm $uuid acpipowerbutton  
+          $vbox_command -nologo controlvm $uuid poweroff
         fi
       fi
       ;;
@@ -297,16 +297,16 @@ loop()
         # whole name is searched and found and not a substring.
         # This also requires the config file to be formatted
         # like this: <session name>,<vrdp port>
-        con_fline=`cat $machines_conf | grep "$name,"`
+        conf_line=`cat $machines_conf | grep "$name,"`
 
         # Only start session when it is found, and not commented out by '#'                 
-        if [ -n "$con_fline" ] && [ "${con_fline:0:1}" != "#" ]     
+        if [ -n "$conf_line" ] && [ "${conf_line:0:1}" != "#" ]     
         then       
           # The session to start must not be running already
           if [ "$state" != "$state_running" ]
           then          
             # Extract VRDP port from machines.conf
-            vrdp_port_config=`echo $con_fline | awk 'BEGIN{FS=","}{print $2}'`
+            vrdp_port_config=`echo $conf_line | awk 'BEGIN{FS=","}{print $2}'`
 
             # Check if configured port equals actual port
             if [ "$vrdp_port_config" != "$vrdp_port" ] 
@@ -343,7 +343,7 @@ loop()
             # Extract portforwarding definition from machines.conf
             # This string has the following syntax: <host port>-<guest port>|... 
             # For example: 2022-22|80-80
-            port_forward_config=`echo $con_fline | awk 'BEGIN{FS=","}{print $3}'`
+            port_forward_config=`echo $conf_line | awk 'BEGIN{FS=","}{print $3}'`
 
             # Is port forwarding defined?
             if [ -n "$port_forward_config" ] 

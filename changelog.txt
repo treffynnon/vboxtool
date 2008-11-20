@@ -1,7 +1,11 @@
 Revision:
 0.4
-  - Added option 'vboxtool showconfig', showing config files vboxtool.conf and machines.conf
-    from /etc/vboxtool (feature request from tracker: #2275280).
+  - Tracker 2317852 (bug): 'vboxtool stop' did not stop sessions. Apparently, the did not react
+    on the command 'acpipowerbutton' which should give a smooth shutdown by the OS it self. Now
+    vboxtool issues a 'poweroff' command which is essentially the same as pulling the power plug.
+    Being very effective, but not so nice for the OS.
+  - Tracker 2275280 (feature request): added option 'vboxtool showconfig', showing config 
+    files vboxtool.conf and machines.conf from /etc/vboxtool.
   - Modified output of 'show' and 'showrun' command for consistency and easy text manipulation
   - Code refactoring, changed all variable name: consistent separator '_'
 
