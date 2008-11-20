@@ -1,5 +1,7 @@
 Revision:
 0.4
+  - Tracker 2318332 (bug): Pause state was not detected. VboxTool gave state unknown when a 
+    session was in paused state. Now, the correct state is returned.
   - Tracker 2317852 (bug): 'vboxtool stop' did not stop sessions. Apparently, the did not react
     on the command 'acpipowerbutton' which should give a smooth shutdown by the OS it self. Now
     vboxtool issues a 'poweroff' command which is essentially the same as pulling the power plug.

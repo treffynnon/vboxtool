@@ -117,6 +117,7 @@ loop()
   state_saved='saved'
   state_powered_off='powered-off'
   state_aborted='aborted'
+  state_paused='paused'
   state_unknown='unknown'
     
   # Actions specific for backup
@@ -192,7 +193,13 @@ loop()
           then
             state=$state_aborted
           else
-            state=$state_unknown
+            echo "$state_raw" | grep -q "paused"
+            if [ $? -eq 0 ]
+            then
+              state=$state_paused
+            else
+              state=$state_unknown
+            fi
           fi
         fi
       fi
