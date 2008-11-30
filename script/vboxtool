@@ -87,8 +87,21 @@ help()
   echo "in machines.conf will be started because actually, a 'vboxtool autostart'"
   echo "command is issued. Saving sessions when host goes down does not depend on"
   echo "machines.conf: all running sessions will be saved by a 'vboxtool save' command."
+  echo ""
+  echo "All commands will be logged to <home>/.VirtualBox/vboxtool.log."
   echo ""    
   echo "See http://vboxtool.sourceforge.net for more details."  
+}
+
+log () { 
+  # Log to console and a predefined log file.
+  echo $1
+  log2file "$1"
+}
+
+log2file () { 
+  # Log to a predefined log file.
+  echo "$(date +%Y-%m-%d) $(date +%H:%M:%S) $1" 1>> "$log_file"
 }
 
 showconfig()
@@ -123,16 +136,13 @@ loop()
   # Actions specific for backup
   if [ "$option" == "backup" ]
   then
-    # Fixed folder
-    vbox_folder="$HOME/.VirtualBox"   
-
     # Dynamic folders
     vdi_folder=$($vbox_command list systemproperties | grep "Default VDI" | cut -d":" -f2 | sed -e 's/[[:space:]]//g')
     machine_folder=$($vbox_command list systemproperties | grep "Default machine" | cut -d":" -f2 | sed -e 's/[[:space:]]//g')
 
     # Backup folder is fixed and relative to the vbox folder
     backup_folder="$vbox_folder/.backup"
-    echo "Backup folder: $backup_folder"
+    log "Backup folder: $backup_folder"
 
     # Create a backup folder and subfolders
     mkdir -p $backup_folder
@@ -143,13 +153,13 @@ loop()
     rsync -va "$vbox_folder/VirtualBox.xml" "$backup_folder"
   fi
   
-  # Actions specific for backup
+  # Actions specific for autostart
   if [ "$option" == "autostart" ]
   then  
     # Check if config file exists
     if [ ! -e "$machines_conf" ]
     then
-      echo "Configuration file $machines_conf not found"
+      log "Configuration file $machines_conf not found"
     fi
   fi  
 
@@ -213,8 +223,9 @@ loop()
       then
         if [ "$state" == "$state_running" ]
         then
-          echo "Saving \"$name\""
+          log "Saving \"$name\""
           $vbox_command -nologo controlvm $uuid savestate
+          log2file "\"$name\" saved"
         fi
       fi
       ;;
@@ -226,8 +237,9 @@ loop()
         # Save the session to provide a stabile snapshot
         if [ "$state" == "$state_running" ]
         then
-          echo "Saving \"$name\""
+          log "Saving \"$name\""
           $vbox_command -nologo controlvm $uuid savestate
+          log2file "\"$name\" saved"
 
           # Apparantly, saving a session is asynchronous, i.e. the session is not (entirely) 
           # saved even if the command line has returned. Starting the same session immediately
@@ -237,24 +249,27 @@ loop()
 
         # Files are copied on a individual basis to backup only those files which are essential and
         # to provide a clean backup. Log files under $machine_folder/$name/Logs are left out.
-        echo "Copy files of \"$name\""
         mkdir -p "$backup_folder/Machines/$name/Snaphots"
 
         # Copy the session config file
+        log2file "Copy $machine_folder/$name/$name.xml"
         rsync -va "$machine_folder/$name/$name.xml" "$backup_folder/Machines/$name"
 
         # Copy any snapshots, i.e. delta's (save state = .vdi) + snapshots (= .sav)
+        log2file "Copy $machine_folder/$name/Snapshots/"
         rsync -va --progress --delete "$machine_folder/$name/Snapshots/" "$backup_folder/Machines/$name/Snaphots"
 
         # Extract the VDI file name (main session file) of the specified session and copy it
         vdifile=$($vbox_command showvminfo "$name" | grep "Primary master" | cut -d":" -f2 | cut -d "(" -f1 | sed -e 's/^[ \t]*//' | sed 's/[ \t]*$//')
+        log2file "Copy $vdifile"
         rsync -va --progress "$vdifile" "$backup_folder/VDI"
 
         # Restart session, only if is it was running before backing up
         if [ "$state" == "$state_running" ]
         then
-          echo "Starting \"$name\" (vrdp=$vrdp_port)"
+          log "Starting \"$name\" (vrdp=$vrdp_port)"
           $vbox_command -nologo startvm $uuid -type vrdp
+          log2file "\"$name\" started"
         fi
       fi
       ;;
@@ -264,9 +279,10 @@ loop()
       then
         if [ "$state" == "$state_running" ]
         then
-          echo "Stopping \"$name\""
+          log "Stopping \"$name\""
           # No reset, stopping is done by the operationg system within the session
           $vbox_command -nologo controlvm $uuid poweroff
+          log2file "\"$name\" stopped"
         fi
       fi
       ;;
@@ -290,8 +306,9 @@ loop()
         # In any case, the session to start must not be running already
         if [ "$state" != "$state_running" ]
         then   
-          echo "Starting \"$name\" (vrdp=$vrdp_port)"
+          log "Starting \"$name\" (vrdp=$vrdp_port)"
           $vbox_command -nologo startvm $uuid -type vrdp
+          log2file "\"$name\" started"
         fi
       fi
       ;;
@@ -321,11 +338,11 @@ loop()
               # Changing of the VRDP port can only take place on a powered-off session
               if [ "$state" == "$state_saved" ] 
               then
-                echo "Discarding state of \"$name\""
+                log "Discarding state of \"$name\""
                 $vbox_command -nologo discardstate $uuid
               fi
 
-              echo "Applying VRDP port $vrdp_port_config to \"$name\""
+              log "Applying VRDP port $vrdp_port_config to \"$name\""
               $vbox_command -nologo modifyvm $uuid -vrdpport $vrdp_port_config
             fi
 
@@ -365,7 +382,7 @@ loop()
                 # to check if the session is in save-state (unlike configuring the VRDP port).
                          
                 # Apply port forwarding settings
-                echo "Apply port forwarding $port_pair to \"$name\""
+                log "Apply port forwarding $port_pair to \"$name\""
                 
                 # Variable data_id is only a party specifier, so without trailing 'Protocol',
                 # 'HostPort' or 'GuestPort'.              
@@ -376,8 +393,9 @@ loop()
               done
             fi
             
-            echo "Starting \"$name\" (vrdp=$vrdp_port_config)"
+            log "Starting \"$name\" (vrdp=$vrdp_port_config)"
             $vbox_command -nologo startvm $uuid -type vrdp
+            log2file "\"$name\" started"
           fi        
         fi
       fi
@@ -430,7 +448,7 @@ else
   then
     vbox_command='vboxmanage'
   else
-    echo "Either 'VBoxManage' or 'vboxmanage' is not available, exiting."
+    log "Either 'VBoxManage' or 'vboxmanage' is not available, exiting."
     exit 1
   fi
 fi
@@ -439,31 +457,43 @@ fi
 version='0.4'
 machines_conf='/etc/vboxtool/machines.conf'
 vboxtool_conf='/etc/vboxtool/vboxtool.conf'
+vbox_folder="$HOME/.VirtualBox"   
+log_file="$vbox_folder/vboxtool.log"
 
 #
 # Check for a commandline option
 #
 case "$1" in
-save)
-  loop save "$2"
-  ;;
 start)
+  log2file "Started command: $1 $2"
   loop start "$2"
+  log2file "Finished command: $1 $2"
+  ;;
+save)
+  log2file "Started command: $1 $2"
+  loop save "$2"
+  log2file "Finished command: $1 $2"
   ;;
 autostart)
+  log2file "Started command: $1"
   loop autostart
+  log2file "Finished command: $1"
   ;;  
 stop)
+  log2file "Started command: $1 $2"
   loop stop "$2"
+  log2file "Finished command: $1 $2"
+  ;;
+backup)
+  log2file "Started command: $1 $2"
+  loop backup "$2"
+  log2file "Finished command: $1 $2"
   ;;
 show)
   loop show
   ;;
 showrun)
   loop showrun
-  ;;
-backup)
-  loop backup "$2"
   ;;
 showconfig)
   showconfig
