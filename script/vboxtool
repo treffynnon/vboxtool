@@ -228,7 +228,7 @@ loop()
         then
           log "Saving \"$name\""
           $vbox_command -nologo controlvm $uuid savestate
-          log2file "\"$name\" saved"
+          log2file "Session \"$name\" saved"
         fi
       fi
       ;;
@@ -242,7 +242,7 @@ loop()
         then
           log "Saving \"$name\""
           $vbox_command -nologo controlvm $uuid savestate
-          log2file "\"$name\" saved"
+          log2file "Session \"$name\" saved"
 
           # Apparantly, saving a session is asynchronous, i.e. the session is not (entirely) 
           # saved even if the command line has returned. Starting the same session immediately
@@ -272,7 +272,7 @@ loop()
         then
           log "Starting \"$name\" (vrdp=$vrdp_port)"
           $vbox_command -nologo startvm $uuid -type vrdp
-          log2file "\"$name\" started"
+          log2file "Session \"$name\" started"
         fi
       fi
       ;;
@@ -285,7 +285,7 @@ loop()
           log "Stopping \"$name\""
           # No reset, stopping is done by the operationg system within the session
           $vbox_command -nologo controlvm $uuid poweroff
-          log2file "\"$name\" stopped"
+          log2file "Session \"$name\" stopped"
         fi
       fi
       ;;
@@ -311,7 +311,7 @@ loop()
         then   
           log "Starting \"$name\" (vrdp=$vrdp_port)"
           $vbox_command -nologo startvm $uuid -type vrdp
-          log2file "\"$name\" started"
+          log2file "Session \"$name\" started"
         fi
       fi
       ;;
@@ -398,7 +398,7 @@ loop()
             
             log "Starting \"$name\" (vrdp=$vrdp_port_config)"
             $vbox_command -nologo startvm $uuid -type vrdp
-            log2file "\"$name\" started"
+            log2file "Session \"$name\" started"
           fi        
         fi
       fi
