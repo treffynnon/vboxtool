@@ -88,7 +88,7 @@ help()
   echo "command is issued. Saving sessions when host goes down does not depend on"
   echo "machines.conf: all running sessions will be saved by a 'vboxtool save' command."
   echo ""
-  echo "All commands will be logged to <home>/.VirtualBox/vboxtool.log."
+  echo "All commands will be logged to $log_file"
   echo ""    
   echo "See http://vboxtool.sourceforge.net for more details."  
 }
