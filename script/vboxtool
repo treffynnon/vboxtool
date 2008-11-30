@@ -52,8 +52,6 @@ help()
   echo "  save [session]    Save all running sessions or only the given session."
   echo "  stop [session]    Stop all running sessions or only the given session."
   echo "  backup [session]  Backup all running sessions or only the given session."
-  echo "                    Running sessions are saved and started after backup has"
-  echo "                    completed."
   echo "  --version|version Version info."
   echo "  --help|help       This help."
   echo ""
@@ -87,6 +85,12 @@ help()
   echo "in machines.conf will be started because actually, a 'vboxtool autostart'"
   echo "command is issued. Saving sessions when host goes down does not depend on"
   echo "machines.conf: all running sessions will be saved by a 'vboxtool save' command."
+  echo ""
+  echo "The backup command copies all session files to a safe location. This includes"
+  echo "the configuration file(s), main VDI file and all snapshots. Running sessions"
+  echo "are saved and started after backup has completed. The backup folder is fixed and"
+  echo "relative to the vbox folder: $backup_folder"
+  echo "Underneith, subfolders VDI and Machines are created."
   echo ""
   echo "All commands will be logged to $log_file"
   echo ""    
@@ -141,7 +145,6 @@ loop()
     machine_folder=$($vbox_command list systemproperties | grep "Default machine" | cut -d":" -f2 | sed -e 's/[[:space:]]//g')
 
     # Backup folder is fixed and relative to the vbox folder
-    backup_folder="$vbox_folder/.backup"
     log "Backup folder: $backup_folder"
 
     # Create a backup folder and subfolders
@@ -458,6 +461,7 @@ version='0.4'
 machines_conf='/etc/vboxtool/machines.conf'
 vboxtool_conf='/etc/vboxtool/vboxtool.conf'
 vbox_folder="$HOME/.VirtualBox"   
+backup_folder="$vbox_folder/.backup"
 log_file="$vbox_folder/vboxtool.log"
 
 #

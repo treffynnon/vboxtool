@@ -1,5 +1,6 @@
 Revision:
 0.4
+  - Documented backup option in help (feature request 2216423).
   - Added logging to ~/.VirtualBox/vboxtool.log (feature request 2275101).
   - Pause state was not detected. VboxTool gave state unknown when a session was in paused 
     state. Now, the correct state is returned (bug 2318332).
