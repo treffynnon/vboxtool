@@ -37,29 +37,28 @@
 # Description:       Controls VirtualBox sessions
 ### END INIT INFO
 
+# Command mapping between vboxtoolinit and vbox. Because the init-system requires specific 
+# commands like 'start' and 'stop' and we don't want to execute these commands literally, 
+# vboxtoolinit maps these to the desired command in vboxtool.
 
 start()
 {
-  # Command mapping between vboxtoolinit and vbox. Because the init-system requires specific 
-  # commands like 'start' and 'stop' and we don't want to execute these commands literally, 
-  # vboxtoolinit maps these to the desired command in vboxtool.
-
   # 'vboxtoolinit start' maps to 'vboxtool autostart'; when the host boots, all sessions in 
   # the config file /etc/vboxtool/machines.conf are started
-  `$su_command "vboxtool autostart"` > /dev/null
+  $su_command "vboxtool autostart" > /dev/null
 }
 
 stop()
 {
   # 'vboxtoolinit stop' maps to 'vboxtool save'; when the host halts, all running sessions 
   # are saved, instead of stopped.
-  `$su_command "vboxtool save"` > /dev/null
+  $su_command "vboxtool save" > /dev/null
 }
 
 restart()
 {
-  `$su_command "vboxtool save"` > /dev/null
-  `$su_command "vboxtool autostart"` > /dev/null
+  stop
+  start
 }
 
 # Some constants
