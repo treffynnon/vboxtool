@@ -136,36 +136,7 @@ loop()
   state_aborted='aborted'
   state_paused='paused'
   state_unknown='unknown'
-    
-  # Actions specific for backup
-  if [ "$option" == "backup" ]
-  then
-    # Dynamic folders
-    vdi_folder=$($vbox_command list systemproperties | grep "Default VDI" | cut -d":" -f2 | sed -e 's/[[:space:]]//g')
-    machine_folder=$($vbox_command list systemproperties | grep "Default machine" | cut -d":" -f2 | sed -e 's/[[:space:]]//g')
-
-    # Backup folder is fixed and relative to the vbox folder
-    log "Backup folder: $backup_folder"
-
-    # Create a backup folder and subfolders
-    mkdir -p $backup_folder
-    mkdir -p $backup_folder/Machines
-    mkdir -p $backup_folder/VDI
-
-    # Copy the vbox config file
-    rsync -va "$vbox_folder/VirtualBox.xml" "$backup_folder"
-  fi
-  
-  # Actions specific for autostart
-  if [ "$option" == "autostart" ]
-  then  
-    # Check if config file exists
-    if [ ! -e "$machines_conf" ]
-    then
-      log "Configuration file $machines_conf not found"
-    fi
-  fi  
-
+      
   #
   # Iterate over all registered vm's
   #
@@ -504,6 +475,12 @@ save)
   ;;
 autostart)
   log2file "Started command: $1"
+
+  # Check if config file exists
+  if [ ! -e "$machines_conf" ]
+  then
+    log "Configuration file $machines_conf not found"
+  fi
   loop autostart
   log2file "Finished command: $1"
   ;;  
@@ -514,6 +491,22 @@ stop)
   ;;
 backup)
   log2file "Started command: $1 $2"
+
+  # Dynamic folders
+  vdi_folder=$($vbox_command list systemproperties | grep "Default VDI" | cut -d":" -f2 | sed -e 's/[[:space:]]//g')
+  machine_folder=$($vbox_command list systemproperties | grep "Default machine" | cut -d":" -f2 | sed -e 's/[[:space:]]//g')
+
+  # Backup folder is fixed and relative to the vbox folder
+  log "Backup folder: $backup_folder"
+
+  # Create a backup folder and subfolders
+  mkdir -p $backup_folder
+  mkdir -p $backup_folder/Machines
+  mkdir -p $backup_folder/VDI
+
+  # Copy the vbox config file
+  rsync -va "$vbox_folder/VirtualBox.xml" "$backup_folder"
+
   loop backup "$2"
   log2file "Finished command: $1 $2"
   ;;
