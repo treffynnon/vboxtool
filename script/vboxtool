@@ -169,8 +169,32 @@ loop()
   #
   # Iterate over all registered vm's
   #
-  # Beware: output from VBoxManage should be something like this: "UUID:<12 spaces><uuid>"
-  for uuid in $($vbox_command list vms | grep UUID: | awk 'BEGIN{FS="UUID:            "}{print $2}')
+
+  # Up to version 2.2.0, output of 'VBoxManage list vms | grep UUID:' looks like this:  
+  # "UUID:<12 spaces><uuid>"
+  # It is very much verbose, so lines have to be grepped.
+  # For iterating over UUID's, this is the initial command:
+  # VBoxManage --nologo list vms | grep UUID: | awk 'BEGIN{FS="UUID:            "}{print $2}'
+  #
+  # From version 2.2.0 and higher, output of 'VBoxManage list vms' looks like this:
+  # "<session name>" {<uuid>} 
+  # It's very compact, but nonetheless different from former versions, thus, not interchangeble.
+  #
+  # Fortunately, post 2.2.0 VBoxManage has an extra command option, --long. When applying that option, 
+  # output is the same as pre 2.2.0 version of VBoxManage. However, simply applying that option on 
+  # a pre-2.2.0 version, results in 'invalid command'. So first we have to distinguish if the --long 
+  # option is needed. This can be done by retrieving version info of VBoxManage, but as this is error
+  # prone (same math calc has to be done), I decided to evaluate the output of VBoxManage.
+
+  # Detect a VBoxManage version post 2.2.0
+  force_long_format=""
+  long_format_test=$($vbox_command list vms | grep "UUID:")
+  if ([ ! -n "$long_format_test" ]) 
+  then
+    force_long_format="--long"
+  fi
+
+  for uuid in $($vbox_command list vms $force_long_format | grep "UUID:            " | awk 'BEGIN{FS="UUID:            "}{print $2}')
   do
     #
     # Extract info from specific vm-session
