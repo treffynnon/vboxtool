@@ -1,5 +1,7 @@
 Revision:
 0.4
+  - The change of output format of "VBoxManage list vms" in 2.2 breaks vboxtool (bug 2775886). 
+    This is solved to add a command option --long, whenever VBox 2.2 or higher is used.
   - When issuing vboxtoolinit, it produced an error. Removed backquotes from command 
     sections  (bug 2317839).
   - Documented backup option in help (feature request 2216423).
