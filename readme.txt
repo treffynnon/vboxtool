@@ -6,22 +6,54 @@ Usage and installation is tested only on Ubuntu. Please report if a specific
 function is not working in another environment, say OpenSUSE, Fedora, etc.
 
 INSTALLATION
-(Precede commands with 'sudo' when not operated as root)
+
+Note. Precede commands with 'sudo' when not operated as root.
 
 * Place the main script script/vboxtool in /usr/local/bin
-  Make it executable: chmod +x /usr/local/bin/vboxtool
+
+* Make vboxtool executable: 
+    chmod +x /usr/local/bin/vboxtool
 
 * Place the init script script/vboxtoolinit in /etc/init.d
-  Make it executable: chmod +x /etc/init.d/vboxtoolinit
+
+* Make vboxtoolinit executable: 
+    chmod +x /etc/init.d/vboxtoolinit
   
 * Activate the init script vboxtoolinit:
-  update-rc.d vboxtoolinit defaults 99 10
+    update-rc.d vboxtoolinit defaults 99 10
   
-* Create a folder /etc/vboxtool. In here, two config files have to be created, 
-  type 'vboxtool help' for instructions.
-  Create the configuration folder: mkdir /etc/vboxtool 
-
+* Create a folder /etc/vboxtool. In here, two config files have to be created, see
+  configuration section below, type 'vboxtool help' for more instructions.
+  
 Note. To remove vboxtoolinit from autostart: update-rc.d -f vboxtoolinit remove
+
+CONFIGURATION
+
+Note. Configuration from vboxtool does *not* taking place on *running* sessions, 
+so save or stop all sessions before issueing the autostart command.
+
+* Create /etc/vboxtool/machines.conf:
+    <session name>,<VRDP-port>
+
+   The VRDP-port enables RDP-clients like rdesktop to connect. It may be left blank.
+
+* Create /etc/vboxtool/vboxtool.conf:
+    vbox_user='<user name>'
+
+* Issue the following command:
+    vboxtool autostart
+
+  VBoxTool will configure sessions (VRDP-port). By now, session(s) should be up and 
+  running and configured.
+
+* Check if sessions or running, with the assumed vrdp-port:
+    vboxtool show 
+
+  Show only the running sessions:
+    vboxtool showrun
+
+* Check if sessions configured in /etc/vboxtool/machines.conf are be automatically 
+  started at reboot. Reboot your system, check with: vboxtool showrun
 
 UPGRADING FROM 0.2
 
@@ -42,6 +74,10 @@ KNOWN ISSUES
   (according to info from 'VBoxManage showvminfo') is pointing to the snapshot 
   vdi instead of the expected, chained main vdi in the vdi folder.
   (Tracker #2132265)
-  
-See http://vboxtool.sourceforge.net for more details.    
+
+MORE HELP
+
+- Type: 'vboxtool help'
+- See http://vboxtool.sourceforge.net for more details.    
+
 
