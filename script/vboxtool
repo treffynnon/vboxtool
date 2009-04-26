@@ -145,7 +145,7 @@ loop()
   # "UUID:<12 spaces><uuid>"
   # It is very much verbose, so lines have to be grepped.
   # For iterating over UUID's, this is the initial command:
-  # VBoxManage --nologo list vms | grep UUID: | awk 'BEGIN{FS="UUID:            "}{print $2}'
+  # VBoxManage list vms | grep UUID: | awk 'BEGIN{FS="UUID:            "}{print $2}'
   #
   # From version 2.2.0 and higher, output of 'VBoxManage list vms' looks like this:
   # "<session name>" {<uuid>} 
@@ -222,7 +222,7 @@ loop()
         if [ "$state" == "$state_running" ]
         then
           log "Saving \"$name\""
-          $vbox_command -nologo controlvm $uuid savestate
+          $vbox_command controlvm $uuid savestate
           log2file "Session \"$name\" saved"
         fi
       fi
@@ -236,7 +236,7 @@ loop()
         if [ "$state" == "$state_running" ]
         then
           log "Saving \"$name\""
-          $vbox_command -nologo controlvm $uuid savestate
+          $vbox_command controlvm $uuid savestate
           log2file "Session \"$name\" saved"
 
           # Apparantly, saving a session is asynchronous, i.e. the session is not (entirely) 
@@ -266,7 +266,7 @@ loop()
         if [ "$state" == "$state_running" ]
         then
           log "Starting \"$name\" (vrdp=$vrdp_port)"
-          $vbox_command -nologo startvm $uuid -type vrdp
+          $vbox_command startvm $uuid -type vrdp
           log2file "Session \"$name\" started"
         fi
       fi
@@ -279,7 +279,7 @@ loop()
         then
           log "Stopping \"$name\""
           # No reset, stopping is done by the operationg system within the session
-          $vbox_command -nologo controlvm $uuid poweroff
+          $vbox_command controlvm $uuid poweroff
           log2file "Session \"$name\" stopped"
         fi
       fi
@@ -305,7 +305,7 @@ loop()
         if [ "$state" != "$state_running" ]
         then   
           log "Starting \"$name\" (vrdp=$vrdp_port)"
-          $vbox_command -nologo startvm $uuid -type vrdp
+          $vbox_command startvm $uuid -type vrdp
           log2file "Session \"$name\" started"
         fi
       fi
@@ -337,11 +337,11 @@ loop()
               if [ "$state" == "$state_saved" ] 
               then
                 log "Discarding state of \"$name\""
-                $vbox_command -nologo discardstate $uuid
+                $vbox_command discardstate $uuid
               fi
 
               log "Applying VRDP port $vrdp_port_config to \"$name\""
-              $vbox_command -nologo modifyvm $uuid -vrdpport $vrdp_port_config
+              $vbox_command modifyvm $uuid -vrdpport $vrdp_port_config
             fi
 
             #
@@ -355,11 +355,11 @@ loop()
             # bullet proof to implement (KISS principle).             
             # This strategy also ensures that settngs are always removed, so that so setting 
             # becomes orphaned.
-            for data_key in $($vbox_command -nologo getextradata $uuid enumerate | grep "VBoxInternal/Devices" | grep vboxtool | awk 'BEGIN{FS=","}{print $1}' | awk 'BEGIN{FS=": "}{print $2}')
+            for data_key in $($vbox_command getextradata $uuid enumerate | grep "VBoxInternal/Devices" | grep vboxtool | awk 'BEGIN{FS=","}{print $1}' | awk 'BEGIN{FS=": "}{print $2}')
             do
               # Variable data_key consist op the whole specifier, so inclusive trailing 'Protocol',
               # 'HostPort' or 'GuestPort'.
-              $vbox_command -nologo setextradata $uuid $data_key
+              $vbox_command setextradata $uuid $data_key
             done
 
             # Extract portforwarding definition from machines.conf
@@ -385,14 +385,14 @@ loop()
                 # Variable data_id is only a party specifier, so without trailing 'Protocol',
                 # 'HostPort' or 'GuestPort'.              
                 data_id="VBoxInternal/Devices/pcnet/0/LUN#0/Config/vboxtool-tcp-$port_pair"
-                $vbox_command -nologo setextradata $uuid $data_id/Protocol TCP
-                $vbox_command -nologo setextradata $uuid $data_id/HostPort `echo $port_pair | awk 'BEGIN{FS="-"}{print $1}'`
-                $vbox_command -nologo setextradata $uuid $data_id/GuestPort `echo $port_pair | awk 'BEGIN{FS="-"}{print $2}'`
+                $vbox_command setextradata $uuid $data_id/Protocol TCP
+                $vbox_command setextradata $uuid $data_id/HostPort `echo $port_pair | awk 'BEGIN{FS="-"}{print $1}'`
+                $vbox_command setextradata $uuid $data_id/GuestPort `echo $port_pair | awk 'BEGIN{FS="-"}{print $2}'`
               done
             fi
             
             log "Starting \"$name\" (vrdp=$vrdp_port_config)"
-            $vbox_command -nologo startvm $uuid -type vrdp
+            $vbox_command startvm $uuid -type vrdp
             log2file "Session \"$name\" started"
           fi        
         fi
@@ -440,11 +440,11 @@ loop()
 # have to find out which executable is available.
 if [ -n $(whereis VBoxManage | awk 'BEGIN{FS=" "}{print $2}') ]
 then
-  vbox_command='VBoxManage'
+  vbox_command='VBoxManage -nologo'
 else
   if [ -n $(whereis vboxmanage | awk 'BEGIN{FS=" "}{print $2}') ]
   then
-    vbox_command='vboxmanage'
+    vbox_command='vboxmanage -nologo'
   else
     log "Either 'VBoxManage' or 'vboxmanage' is not available, exiting."
     exit 1
