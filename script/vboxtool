@@ -55,14 +55,9 @@ help()
   echo "  --version|version Version info."
   echo "  --help|help       This help."
   echo ""
-  echo "Note on autostart. Sessions can be started in a controlled way, only the"
-  echo "sessions in the configuration file will be started. As a bonus, the VRDP port"
-  echo "(also configurable) and port forwarding can be set at startup time. These"
-  echo "options are controlled by $machines_conf. The given ports"
-  echo "are set statically to the session, prior to starting. When VRDP port has to be "
-  echo "changed, state is discarded when session is in savestate."
-  echo ""  
-  echo "Notes on $machines_conf:"
+  echo "*Configuration. vboxtool depends on two config files, located in /etc/vboxtool."
+  echo ""
+  echo "Configuration file $machines_conf:"
   echo "- Each line in this file is a separate machine." 
   echo "- Structure of each line: <session name>,<vrdp port>,<host port>-<guest port>|..."
   echo "- Do not use spaces before and after the ',' delimiter."  
@@ -71,14 +66,24 @@ help()
   echo "Example for $machines_conf:"
   echo "Ubuntu Desktop,3391"
   echo "Ubuntu JeOS,3392,2022-22|80-80"
-  echo ""  
-  echo "Note on stopping sessions. Saving sessions is preferred above stopping: this"
-  echo "is faster when restoring and safer because session can appear to be cold booted."
   echo ""
-  echo "VBoxTool is capable for autostart sessions at boot time and autosave sessions"
-  echo "when host is stopped. This depends on /etc/vboxtool/vboxtool.conf."
-  echo "Structure of vboxtool.conf: vbox_user='<user name>' (with quotes). Fill for"
-  echo "<user name> the name of the user under which sessions are installed/running."  
+  echo "Example for $vboxtool_conf"
+  echo "vbox_user='user'"
+  echo "backup_folder=/home/user/vboxbackup"
+  echo ""
+  echo "*Autostart. Sessions can be started in a controlled way from the command line,"
+  echo "only the echo sessions in $machines_conf will be started. As a bonus,"
+  echo "the VRDP port and port forwarding can be set at startup time. These"
+  echo "options are controlled by $machines_conf. The given ports"
+  echo "are set statically to the session, prior to starting. When VRDP port has to be "
+  echo "changed, state is discarded when session is in savestate."
+  echo ""  
+  echo "*Start at boot, save on halt. VBoxTool is capable for autostart sessions at"
+  echo "boot time and autosave sessions when host is stopped. This depends on "
+  echo "/etc/vboxtool/vboxtool.conf. In here, the variable vbox_user must be filled:"
+  echo "vbox_user='<user name>'" 
+  echo "Note the quotes. Fill for <user name> the name of the user under which"
+  echo "sessions are installed/running."  
   echo ""  
   echo "When vboxtool.conf is not present, no session will start at boot, nor will"
   echo "auto save on host down take place. When vboxtool.conf is present, all sessions"
@@ -86,13 +91,18 @@ help()
   echo "command is issued. Saving sessions when host goes down does not depend on"
   echo "machines.conf: all running sessions will be saved by a 'vboxtool save' command."
   echo ""
-  echo "The backup command copies all session files to a safe location. This includes"
-  echo "the configuration file(s), main VDI file and all snapshots. Running sessions"
-  echo "are saved and started after backup has completed. The backup folder is fixed and"
-  echo "relative to the vbox folder: $backup_folder"
-  echo "Underneith, subfolders VDI and Machines are created."
+  echo "*Stopping sessions. Saving sessions is preferred above stopping: this"
+  echo "is faster when restoring and safer because session can appear to be cold booted."
   echo ""
-  echo "All commands will be logged to $log_file"
+  echo "*The backup command copies all session files to a safe location. This includes"
+  echo "the configuration file(s), main VDI file and all snapshots. Running sessions"
+  echo "are saved and started after backup has completed. The default backup folder is"
+  echo "relative to the vbox folder: <vbox_folder>/.backup. Underneith, subfolders VDI and "
+  echo "Machines are created."
+  echo "A different folder can be used, by defining this in $vboxtool_conf:"
+  echo "backup_folder=/home/user/vboxbackup"
+  echo ""
+  echo "*Logging. All commands will be logged to $log_file"
   echo ""    
   echo "See http://vboxtool.sourceforge.net for more details."  
 }
@@ -314,11 +324,10 @@ loop()
       # Check existence of config file
       if [ -e "$machines_conf" ]
       then
-        # Check if session is named in machines.conf
-        # Watch the extra comma after name; this is to ensure the 
-        # whole name is searched and found and not a substring.
-        # This also requires the config file to be formatted
-        # like this: <session name>,<vrdp port>
+        # Check if session is named in machines.conf. Watch the extra comma after name; 
+        # this is to ensure the whole name is searched and found and not a substring.
+        # This also requires the config file to be formatted like this: 
+        # <session name>,<vrdp port>
         conf_line=`cat $machines_conf | grep "$name,"`
 
         # Only start session when it is found, and not commented out by '#'                 
@@ -348,13 +357,12 @@ loop()
             # Port forwarding
             #
             
-            # Remove all port forwarding pairs contaning 'vboxtool'; these are considered
+            # Remove all port forwarding pairs containing 'vboxtool'; these are considered
             # 'property' of VBoxTool. Hence, they may be deleted at will (by VBoxTool).
             # By using such a strategy, we do not have to check if and how a particular 
             # port pair is defined; it's a kind of 'brute force' but it's very simple and
-            # bullet proof to implement (KISS principle).             
-            # This strategy also ensures that settngs are always removed, so that so setting 
-            # becomes orphaned.
+            # bullet proof to implement (KISS principle). This strategy also ensures that 
+            # settngs are always removed, so that so setting becomes orphaned.
             for data_key in $($vbox_command getextradata $uuid enumerate | grep "VBoxInternal/Devices" | grep vboxtool | awk 'BEGIN{FS=","}{print $1}' | awk 'BEGIN{FS=": "}{print $2}')
             do
               # Variable data_key consist op the whole specifier, so inclusive trailing 'Protocol',
@@ -456,8 +464,21 @@ version='0.4'
 machines_conf='/etc/vboxtool/machines.conf'
 vboxtool_conf='/etc/vboxtool/vboxtool.conf'
 vbox_folder="$HOME/.VirtualBox"   
-backup_folder="$vbox_folder/.backup"
 log_file="$vbox_folder/vboxtool.log"
+
+# Retrieve settings from config file, just by executing the config file.
+# Config file $config_file should look like this:
+# backup_folder="$vbox_folder/.backup"
+if [ -f $vboxtool_conf ]
+then
+  . $vboxtool_conf
+fi
+
+# If no backup folder defined, use default
+if [ ! -n "$backup_folder" ]
+then
+  backup_folder="$vbox_folder/.backup"
+fi
 
 #
 # Check for a commandline option

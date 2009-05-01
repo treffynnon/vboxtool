@@ -1,5 +1,6 @@
 Revision:
 0.4
+  - Configurable backup folder (feature request 2213713)
   - Added a generic -nologo for VBoxManage command (feature request 2393874).
   - Expanded readme.txt, added configuration details (feature request 2275085).
   - The change of output format of "VBoxManage list vms" in 2.2 breaks vboxtool (bug 2775886). 
