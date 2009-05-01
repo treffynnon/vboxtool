@@ -83,7 +83,7 @@ fi
 
 # Implementation of user control, execute several commands as another (predefined) user, 
 # thus freeing the main script vboxtool from any user related issues.
-su_command="su $vbox_user -c"
+su_command="su - $vbox_user -c"
 
 #
 # Check for a commandline option
