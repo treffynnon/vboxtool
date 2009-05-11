@@ -45,14 +45,14 @@ start()
 {
   # 'vboxtoolinit start' maps to 'vboxtool autostart'; when the host boots, all sessions in 
   # the config file /etc/vboxtool/machines.conf are started
-  $su_command "vboxtool autostart" > /dev/null
+  nohup $su_command "vboxtool autostart" > /dev/null
 }
 
 stop()
 {
   # 'vboxtoolinit stop' maps to 'vboxtool save'; when the host halts, all running sessions 
   # are saved, instead of stopped.
-  $su_command "vboxtool save" > /dev/null
+  nohup $su_command "vboxtool save" > /dev/null
 }
 
 restart()

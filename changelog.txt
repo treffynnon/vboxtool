@@ -1,5 +1,11 @@
 Revision:
 0.4
+  - Auto start en stop stopped working in Ubuntu Jaunty (bug 2789649). The init system 
+    is changed in Ubuntu, so that processes don't wait for each other (hence faster boot). 
+    The workaround, is using 'nohup' in vboxtoolinit.
+    Reported bug in Ubuntu: https://bugs.launchpad.net/ubuntu/+bug/372633
+    After the mentioned bug is solved, maybe the workaround must be reverted, depending on the 
+    solution.
   - Modifying vboxtoolinit to work with OpenSolaris/Solaris (bug 2527710). Modified 
     vboxtoolinit into su_command="su - $vbox_user -c". the dash is key, as it sets up the 
     environment properly.
