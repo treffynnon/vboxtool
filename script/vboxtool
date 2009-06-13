@@ -245,9 +245,9 @@ loop()
         # Save the session to provide a stabile snapshot
         if [ "$state" == "$state_running" ]
         then
-          log "Saving \"$name\""
-          $vbox_command controlvm $uuid savestate
-          log2file "Session \"$name\" saved"
+          log "Pauzing \"$name\""
+          $vbox_command controlvm $uuid pause
+          log2file "Session \"$name\" paused"
 
           # Apparantly, saving a session is asynchronous, i.e. the session is not (entirely) 
           # saved even if the command line has returned. Starting the same session immediately
@@ -275,9 +275,9 @@ loop()
         # Restart session, only if is it was running before backing up
         if [ "$state" == "$state_running" ]
         then
-          log "Starting \"$name\" (vrdp=$vrdp_port)"
-          $vbox_command startvm $uuid -type vrdp
-          log2file "Session \"$name\" started"
+          log "Resuming \"$name\""
+          $vbox_command controlvm $uuid resume
+          log2file "Session \"$name\" resumed"
         fi
       fi
       ;;

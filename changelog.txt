@@ -1,5 +1,9 @@
 Revision:
 0.4
+  - Sessions are paused in stead of saved prior to backup (feature request 2805829). Pauzing 
+    has is faster and, more important does not create .sav files (for preserving state). This 
+    makes the restoring proces much simpler, because one does not have the state files into
+    account.
   - Auto start en stop stopped working in Ubuntu Jaunty (bug 2789649). The init system 
     is changed in Ubuntu, so that processes don't wait for each other (hence faster boot). 
     The workaround, is using 'nohup' in vboxtoolinit.
