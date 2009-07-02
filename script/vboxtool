@@ -260,16 +260,16 @@ loop()
         mkdir -p "$backup_folder/Machines/$name/Snaphots"
 
         # Copy the session config file
-        log2file "Copy $machine_folder/$name/$name.xml"
+        log2file "Copy $machine_folder/$name/$name.xml to "$backup_folder/Machines/$name""
         rsync -va "$machine_folder/$name/$name.xml" "$backup_folder/Machines/$name"
 
         # Copy any snapshots, i.e. delta's (save state = .vdi) + snapshots (= .sav)
-        log2file "Copy $machine_folder/$name/Snapshots/"
+        log2file "Copy $machine_folder/$name/Snapshots/ to "$backup_folder/Machines/$name/Snaphots""
         rsync -va --progress --delete "$machine_folder/$name/Snapshots/" "$backup_folder/Machines/$name/Snaphots"
 
         # Extract the VDI file name (main session file) of the specified session and copy it
         vdifile=$($vbox_command showvminfo "$name" | grep "Primary master" | cut -d":" -f2 | cut -d "(" -f1 | sed -e 's/^[ \t]*//' | sed 's/[ \t]*$//')
-        log2file "Copy $vdifile"
+        log2file "Copy $vdifile to "$backup_folder/VDI""
         rsync -va --progress "$vdifile" "$backup_folder/VDI"
 
         # Restart session, only if is it was running before backing up
