@@ -515,7 +515,18 @@ backup)
 
   # Dynamic folders
   vdi_folder=$($vbox_command list systemproperties | grep "Default VDI" | cut -d":" -f2 | sed -e 's/[[:space:]]//g')
+
+  # Output stating VDI location is changed (somewhere in 2.x?) to "Default hard disk folder"; to provide 
+  # backwards compatability, we should check that also
+  if [ ! -n "$vdi_folder" ]
+  then
+    vdi_folder=$($vbox_command list systemproperties | grep "Default hard disk" | cut -d":" -f2 | sed -e 's/[[:space:]]//g')
+  fi
+
   machine_folder=$($vbox_command list systemproperties | grep "Default machine" | cut -d":" -f2 | sed -e 's/[[:space:]]//g')
+
+  log "Default hard disk folder: $vdi_folder"
+  log "Default machine folder: $machine_folder"
 
   # Backup folder is fixed and relative to the vbox folder
   log "Backup folder: $backup_folder"
