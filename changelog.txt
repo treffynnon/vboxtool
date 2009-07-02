@@ -1,5 +1,6 @@
 Revision:
 0.4
+  - Output of vboxtool does now contain 'backup' (feature request 2813155)
   - Sessions are paused in stead of saved prior to backup (feature request 2805829). Pauzing 
     has is faster and, more important does not create .sav files (for preserving state). This 
     makes the restoring proces much simpler, because one does not have the state files into

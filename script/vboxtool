@@ -31,7 +31,7 @@ version()
 
 usage()
 {
-  echo "Usage: vboxtool show|showrun|showconfig|start|autostart|save|stop|version|help [session]"
+  echo "Usage: vboxtool show|showrun|showconfig|start|autostart|save|stop|backup|version|help [session]"
   echo "Show info about VirtualBox sessions or control those sessions."
   echo "Type 'vboxtool help' for more information."    
 }
