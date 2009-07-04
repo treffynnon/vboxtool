@@ -17,7 +17,7 @@ echo Building $zipfile
 # Create a zip file (from trunk folder):
 cd $basedir/..
 rm -f $zipfile
-zip -vr $zipfile COPYING.txt readme.txt changelog.txt script/vbox
+zip -vr $zipfile COPYING.txt readme.txt changelog.txt script/vboxtool script/vboxtoolinit
 echo "Build of $zipfile completed."
 
 
