@@ -460,7 +460,7 @@ else
 fi
 
 # Some constants
-version='0.4'
+version='0.5'
 machines_conf='/etc/vboxtool/machines.conf'
 vboxtool_conf='/etc/vboxtool/vboxtool.conf'
 vbox_folder="$HOME/.VirtualBox"   
