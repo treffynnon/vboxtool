@@ -1,5 +1,5 @@
 Revision:
-0.4
+0.4 [2009-07-04]
   - Backup destination path is shown in logfile (feature request 2806034)
   - Extracting of default folders is working again; somewhere (probably in 2.0), the CLI-output
     from VBoxManage for extracting the default folder has been changed (bug 2815159)
