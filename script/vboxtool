@@ -315,7 +315,7 @@ loop()
         if [ "$state" != "$state_running" ]
         then   
           log "Starting \"$name\" (vrdp=$vrdp_port)"
-          $vbox_command startvm $uuid -type vrdp
+          $vbox_command startvm $uuid --type vrdp
           log2file "Session \"$name\" started"
         fi
       fi
@@ -350,7 +350,7 @@ loop()
               fi
 
               log "Applying VRDP port $vrdp_port_config to \"$name\""
-              $vbox_command modifyvm $uuid -vrdpport $vrdp_port_config
+              $vbox_command modifyvm $uuid --vrdpport $vrdp_port_config
             fi
 
             #
@@ -400,7 +400,7 @@ loop()
             fi
             
             log "Starting \"$name\" (vrdp=$vrdp_port_config)"
-            $vbox_command startvm $uuid -type vrdp
+            $vbox_command startvm $uuid --type vrdp
             log2file "Session \"$name\" started"
           fi        
         fi
@@ -448,11 +448,11 @@ loop()
 # have to find out which executable is available.
 if [ -n $(whereis VBoxManage | awk 'BEGIN{FS=" "}{print $2}') ]
 then
-  vbox_command='VBoxManage -nologo'
+  vbox_command='VBoxManage --nologo'
 else
   if [ -n $(whereis vboxmanage | awk 'BEGIN{FS=" "}{print $2}') ]
   then
-    vbox_command='vboxmanage -nologo'
+    vbox_command='vboxmanage --nologo'
   else
     log "Either 'VBoxManage' or 'vboxmanage' is not available, exiting."
     exit 1
