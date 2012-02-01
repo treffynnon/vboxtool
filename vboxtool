@@ -177,11 +177,7 @@ loop()
   
   VBOXLIST=$($vbox_command list vms $force_long_format)
   UUIDLIST=$(echo "$VBOXLIST" | awk -F: '$1 == "UUID" { gsub(/^ /, "", $2); print $2 }')
-  NAMELIST=$(echo "$VBOXLIST" | awk -F: '$1 == "Name" && !index($2, "Host path") { gsub(/^ /, "", $2); print $2 }')
-  STATELIST=$(echo "$VBOXLIST" | awk -F: '$1 == "State" { gsub(/^ /, "", $2); print $2 }')
-  VRDPLIST=$(echo "$VBOXLIST" | awk -F: '$1 == "VRDE port" { gsub(/^ /, "", $2); print $2 }')
 
-  COUNTER=0
   for uuid in $UUIDLIST
   do
     #
@@ -253,9 +249,9 @@ loop()
             # Save the session to provide a stabile snapshot
             if [ "$state" == "$state_running" ]
             then
-              log "Pauzing \"$name\""
-              $vbox_command controlvm $uuid pause
-              log2file "Session \"$name\" paused"
+              log "Saving state \"$name\""
+              $vbox_command controlvm $uuid savestate
+              log2file "Session \"$name\" saved and halted"
 
               # Apparantly, saving a session is asynchronous, i.e. the session is not (entirely) 
               # saved even if the command line has returned. Starting the same session immediately
@@ -263,29 +259,16 @@ loop()
               sleep 1
             fi   
 
-            # Files are copied on a individual basis to backup only those files which are essential and
-            # to provide a clean backup. Log files under $machine_folder/$name/Logs are left out.
-            mkdir -p "$backup_folder/Machines/$name/Snaphots"
-
-            # Copy the session config file
-            log2file "Copy $machine_folder/$name/$name.xml to "$backup_folder/Machines/$name""
-            rsync -va "$machine_folder/$name/$name.xml" "$backup_folder/Machines/$name"
-
-            # Copy any snapshots, i.e. delta's (save state = .vdi) + snapshots (= .sav)
-            log2file "Copy $machine_folder/$name/Snapshots/ to "$backup_folder/Machines/$name/Snaphots""
-            rsync -va --progress --delete "$machine_folder/$name/Snapshots/" "$backup_folder/Machines/$name/Snaphots"
-
-            # Extract the VDI file name (main session file) of the specified session and copy it
-            vdifile=$($vbox_command showvminfo "$name" | grep "Primary master" | cut -d":" -f2 | cut -d "(" -f1 | sed -e 's/^[ \t]*//' | sed 's/[ \t]*$//')
-            log2file "Copy $vdifile to "$backup_folder/VDI""
-            rsync -va --progress "$vdifile" "$backup_folder/VDI"
+            log "Starting the OVA export"
+            CURDATE=`date +%F_%H-%M-%S`
+            $vbox_command export $uuid -o $backup_folder/$name-$CURDATE.ova
 
             # Restart session, only if is it was running before backing up
             if [ "$state" == "$state_running" ]
             then
-              log "Resuming \"$name\""
-              $vbox_command controlvm $uuid resume
-              log2file "Session \"$name\" resumed"
+              log "Starting \"$name\""
+              $vbox_command startvm $uuid --type vrdp
+              log2file "Session \"$name\" started"
             fi
           fi
           ;;
