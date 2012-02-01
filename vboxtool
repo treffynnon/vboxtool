@@ -42,8 +42,8 @@ help()
   echo "Show info about VirtualBox sessions or control those sessions."
   echo ""
   echo "Options:"
-  echo "  show              Show status of all sessions."
-  echo "  showrun           Only show status of running sessions."
+  echo "  ls                List status of all sessions."
+  echo "  ls-running        Only list status of running sessions."
   echo "  showconfig        Show configuration."
   echo "  start [session]   Start all saved sessions or only the given session."
   echo "                    When no session name is given, all saved sessions will be"
@@ -504,31 +504,8 @@ stop)
 backup)
   log2file "Started command: $1 $2"
 
-  # Dynamic folders
-  vdi_folder=$($vbox_command list systemproperties | grep "Default VDI" | cut -d":" -f2 | sed -e 's/[[:space:]]//g')
-
-  # Output stating VDI location is changed (somewhere in 2.x?) to "Default hard disk folder"; to provide 
-  # backwards compatability, we should check that also
-  if [ ! -n "$vdi_folder" ]
-  then
-    vdi_folder=$($vbox_command list systemproperties | grep "Default hard disk" | cut -d":" -f2 | sed -e 's/[[:space:]]//g')
-  fi
-
-  machine_folder=$($vbox_command list systemproperties | grep "Default machine" | cut -d":" -f2 | sed -e 's/[[:space:]]//g')
-
-  log "Default hard disk folder: $vdi_folder"
-  log "Default machine folder: $machine_folder"
-
-  # Backup folder is fixed and relative to the vbox folder
-  log "Backup folder: $backup_folder"
-
   # Create a backup folder and subfolders
   mkdir -p $backup_folder
-  mkdir -p $backup_folder/Machines
-  mkdir -p $backup_folder/VDI
-
-  # Copy the vbox config file
-  rsync -va "$vbox_folder/VirtualBox.xml" "$backup_folder"
 
   loop backup "$2"
   log2file "Finished command: $1 $2"
