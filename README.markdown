@@ -10,11 +10,11 @@ function is not working in another environment, say OpenSUSE, Fedora, etc.
 
 __Note:__ Precede commands with `sudo` when not operated as root.
 
-1. Place the main script script/vboxtool in /usr/local/bin
-2. Make vboxtool executable: `chmod +x /usr/local/bin/vboxtool`
-3. Place the init script script/vboxtoolinit in /etc/init.d
-4. Make vboxtoolinit executable: `chmod +x /etc/init.d/vboxtoolinit`
-5. Activate the init script vboxtoolinit: `update-rc.d vboxtoolinit defaults 99 10`
+1. Place the main script, `vboxtool`, in /usr/local/bin
+2. Make `vboxtool` executable: `chmod +x /usr/local/bin/vboxtool`
+3. Place the `vboxtoolinit` script in /etc/init.d
+4. Make `vboxtoolinit` executable: `chmod +x /etc/init.d/vboxtoolinit`
+5. Activate the `vboxtoolinit`: `update-rc.d vboxtoolinit defaults 99 10`
 6. Create a folder /etc/vboxtool. In here, two config files have to be created, see
   configuration section below, type `vboxtool help` for more instructions.
   
