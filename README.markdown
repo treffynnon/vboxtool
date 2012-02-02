@@ -56,18 +56,7 @@ Sorry for breaking things here, but it's all in the name of naming consistency..
 
 After installation, type `vboxtool help` for more info.
 
-## Known Issues
-
-- Backup is not working as expected when using snapshots. When a snapshot is 
-  present, the main vdi file is not copied, even if it's different from 
-  previous backups. Problem is that once a snapshot is made, the main vdi 
-  (according to info from 'VBoxManage showvminfo') is pointing to the snapshot 
-  vdi instead of the expected, chained main vdi in the vdi folder.
-  (Tracker #2132265)
-
 ## Help
 
 - Type: `vboxtool help`
 - See http://vboxtool.sourceforge.net for more details.    
-
-
