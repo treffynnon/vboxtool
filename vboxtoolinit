@@ -45,14 +45,14 @@ start()
 {
   # 'vboxtoolinit start' maps to 'vboxtool autostart'; when the host boots, all sessions in 
   # the config file /etc/vboxtool/machines.conf are started
-  nohup $su_command "vboxtool autostart" > /dev/null
+  $su_command vboxtool autostart &> /dev/null
 }
 
 stop()
 {
   # 'vboxtoolinit stop' maps to 'vboxtool save'; when the host halts, all running sessions 
   # are saved, instead of stopped.
-  nohup $su_command "vboxtool save" > /dev/null
+  $su_command vboxtool save &> /dev/null
 }
 
 restart()
@@ -83,7 +83,7 @@ fi
 
 # Implementation of user control, execute several commands as another (predefined) user, 
 # thus freeing the main script vboxtool from any user related issues.
-su_command="su - $vbox_user -c"
+su_command="sudo -H -u $vbox_user"
 
 #
 # Check for a commandline option
@@ -103,4 +103,3 @@ restart)
 esac
 
 exit 0
-
