@@ -2,6 +2,7 @@ Revision:
 0.6
   - Change backups to be incremental OVA appliance exports of the virtual machine
   - vboxtool show and vboxtool show-running aliased to ls and ls-running respectively
+  - Fix up boot script to use sudo instead of su
   - For more see: https://github.com/treffynnon/vboxtool/commits/0.6
 0.5
   - Option syntax single dash is deprecated in VBox 3.1.x. These should be replaced by a double 
