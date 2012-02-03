@@ -59,7 +59,7 @@ help()
   echo ""
   echo "Configuration file $machines_conf:"
   echo "- Each line in this file is a separate machine." 
-  echo "- Structure of each line: <session name>,<vrdp port>,<host port>-<guest port>|..."
+  echo "- Structure of each line: <session name>,<vrde port>,<host port>-<guest port>|..."
   echo "- Do not use spaces before and after the ',' delimiter."  
   echo "- Lines can be commented out by '#'"
   echo ""  
@@ -145,36 +145,7 @@ loop()
   state_paused='paused'
   state_unknown='unknown'
       
-  #
-  # Iterate over all registered vm's
-  #
-
-  # Up to version 2.2.0, output of 'VBoxManage list vms | grep UUID:' looks like this:  
-  # "UUID:<12 spaces><uuid>"
-  # It is very much verbose, so lines have to be grepped.
-  # For iterating over UUID's, this is the initial command:
-  # VBoxManage list vms | grep UUID: | awk 'BEGIN{FS="UUID:            "}{print $2}'
-  #
-  # From version 2.2.0 and higher, output of 'VBoxManage list vms' looks like this:
-  # "<session name>" {<uuid>} 
-  # It's very compact, but nonetheless different from former versions, thus, not interchangeble.
-  #
-  # Fortunately, post 2.2.0 VBoxManage has an extra command option, --long. When applying that option, 
-  # output is the same as pre 2.2.0 version of VBoxManage. However, simply applying that option on 
-  # a pre-2.2.0 version, results in 'invalid command'. So first we have to distinguish if the --long 
-  # option is needed. This can be done by retrieving version info of VBoxManage, but as this is error
-  # prone (same math calc has to be done), I decided to evaluate the output of VBoxManage.
-
-  # Detect a VBoxManage version post 2.2.0
-  force_long_format=""
-  long_format_test=$($vbox_command list vms | grep "UUID:")
-  if ([ ! -n "$long_format_test" ]) 
-  then
-    force_long_format="--long"
-  fi
-  
-  VBOXLIST=$($vbox_command list vms $force_long_format)
-  UUIDLIST=$(echo "$VBOXLIST" | awk -F: '$1 == "UUID" { gsub(/^ /, "", $2); print $2 }')
+  UUIDLIST=$($vbox_command list vms | awk -F{ '{ gsub(/^[\{ \t]+|[\} \t]+$/, "", $2); print $2 }')
 
   for uuid in $UUIDLIST
   do
@@ -187,9 +158,9 @@ loop()
     # "State:<11 spaces><uuid>"
     
     SHOWINFO=$($vbox_command showvminfo $uuid)
-    name=$(echo "$SHOWINFO" | awk -F: '$1 == "Name" && !index($2, "Host path") { gsub(/^ /, "", $2); print $2 }')
-    state_raw=$(echo "$SHOWINFO" | awk -F: '$1 == "State" { gsub(/^ /, "", $2); print $2 }')
-    vrdp_port=$(echo "$SHOWINFO" | awk -F: '$1 == "VRDE port" { gsub(/^ /, "", $2); print $2 }')
+    name=$(echo "$SHOWINFO" | awk -F: '$1 == "Name" && !index($2, "Host path") { gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2 }')
+    state_raw=$(echo "$SHOWINFO" | awk -F: '$1 == "State" { gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2 }')
+    vrde_port=$(echo "$SHOWINFO" | awk -F: '$1 == "VRDE port" { gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2 }')
 
     # Extract exact state from string state_raw
     # Beware: output from VBoxManage should be exactly as the given strings, i.e. 'running', 'saved', etc.
@@ -259,13 +230,13 @@ loop()
 
             log "Starting the OVA export"
             CURDATE=`date +%F_%H-%M-%S`
-            $vbox_command export $uuid -o $backup_folder/$name-$CURDATE.ova
+            $vbox_command export $uuid --vsys 0 --product "$name-$CURDATE" -o $backup_folder/$name-$CURDATE.ova
 
             # Restart session, only if is it was running before backing up
             if [ "$state" == "$state_running" ]
             then
               log "Starting \"$name\""
-              $vbox_command startvm $uuid --type vrdp
+              $vbox_command startvm $uuid --type headless
               log2file "Session \"$name\" started"
             fi
           fi
@@ -303,8 +274,8 @@ loop()
             # In any case, the session to start must not be running already
             if [ "$state" != "$state_running" ]
             then   
-              log "Starting \"$name\" (vrdp=$vrdp_port)"
-              $vbox_command startvm $uuid --type vrdp
+              log "Starting \"$name\" (vrde=$vrde_port)"
+              $vbox_command startvm $uuid --type headless
               log2file "Session \"$name\" started"
             fi
           fi
@@ -316,7 +287,7 @@ loop()
             # Check if session is named in machines.conf. Watch the extra comma after name; 
             # this is to ensure the whole name is searched and found and not a substring.
             # This also requires the config file to be formatted like this: 
-            # <session name>,<vrdp port>
+            # <session name>,<vrde port>
             conf_line=`cat $machines_conf | grep "$name,"`
 
             # Only start session when it is found, and not commented out by '#'                 
@@ -326,10 +297,10 @@ loop()
               if [ "$state" != "$state_running" ]
               then          
                 # Extract VRDP port from machines.conf
-                vrdp_port_config=`echo $conf_line | awk 'BEGIN{FS=","}{print $2}'`
+                vrde_port_config=`echo $conf_line | awk 'BEGIN{FS=","}{print $2}'`
 
                 # Check if configured port equals actual port
-                if [ "$vrdp_port_config" != "$vrdp_port" ] 
+                if [ "$vrde_port_config" != "$vrde_port" ] 
                 then 
                   # Changing of the VRDP port can only take place on a powered-off session
                   if [ "$state" == "$state_saved" ] 
@@ -338,8 +309,8 @@ loop()
                     $vbox_command discardstate $uuid
                   fi
 
-                  log "Applying VRDP port $vrdp_port_config to \"$name\""
-                  $vbox_command modifyvm $uuid --vrdeport $vrdp_port_config
+                  log "Applying VRDP port $vrde_port_config to \"$name\""
+                  $vbox_command modifyvm $uuid --vrdeport $vrde_port_config
                 fi
 
                 #
@@ -388,8 +359,8 @@ loop()
                   done
                 fi
                 
-                log "Starting \"$name\" (vrdp=$vrdp_port_config)"
-                $vbox_command startvm $uuid --type vrdp
+                log "Starting \"$name\" (vrde=$vrde_port_config)"
+                $vbox_command startvm $uuid --type headless
                 log2file "Session \"$name\" started"
               fi        
             fi
@@ -414,14 +385,14 @@ loop()
             mem=`echo $top | awk '{ print $5}'`
 
             # Show some output
-            echo "$name: state=$state vrdp=$vrdp_port cpu=$cpu% mem=$mem"
+            echo "$name: state=$state vrde=$vrde_port cpu=$cpu% mem=$mem"
           else # Session is not running
 
             # Only show info when no option is given or the option is 'showrun'
             if [ -z "$option" ] || [ $option != "showrun" ] 
             then
               # Show some output
-              echo "$name: state=$state vrdp=$vrdp_port"
+              echo "$name: state=$state vrde=$vrde_port"
             fi
           fi
           ;;
@@ -449,7 +420,7 @@ else
 fi
 
 # Some constants
-version='0.5'
+version='0.8'
 machines_conf='/etc/vboxtool/machines.conf'
 vboxtool_conf='/etc/vboxtool/vboxtool.conf'
 vbox_folder="$HOME/.VirtualBox"   
