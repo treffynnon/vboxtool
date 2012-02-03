@@ -1,10 +1,14 @@
 Revision:
-0.6
+0.7 [2012-02-03]
+  - Change all instances of vrdp to vrde
+  - Change start call type to headless
+  - Remove support for versions of VirtualBox below version 2.2
+0.6 [2012-02-02]
   - Change backups to be incremental OVA appliance exports of the virtual machine
   - vboxtool show and vboxtool show-running aliased to ls and ls-running respectively
   - Fix up boot script to use sudo instead of su
   - For more see: https://github.com/treffynnon/vboxtool/commits/0.6
-0.5
+0.5 [2012-02-01]
   - Option syntax single dash is deprecated in VBox 3.1.x. These should be replaced by a double 
     dash. (bug 2908385)
 0.4 [2009-07-04]
